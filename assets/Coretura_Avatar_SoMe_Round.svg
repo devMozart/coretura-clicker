@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Lager_1" data-name="Lager 1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 180 180">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: none;
+      }
+
+      .cls-2 {
+        fill: #fff;
+      }
+
+      .cls-3 {
+        fill: url(#Namnlös_övertoning_13);
+      }
+
+      .cls-4 {
+        fill: url(#Namnlös_övertoning_10);
+      }
+
+      .cls-5 {
+        clip-path: url(#clippath);
+      }
+    </style>
+    <clipPath id="clippath">
+      <circle class="cls-1" cx="90" cy="90" r="90"/>
+    </clipPath>
+    <radialGradient id="Namnlös_övertoning_13" data-name="Namnlös övertoning 13" cx="106.65" cy="104.92" fx="106.65" fy="104.92" r="71.08" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#008fc9"/>
+      <stop offset=".11" stop-color="#008fc9" stop-opacity=".95"/>
+      <stop offset=".28" stop-color="#008fc9" stop-opacity=".82"/>
+      <stop offset=".5" stop-color="#008fc9" stop-opacity=".6"/>
+      <stop offset=".76" stop-color="#008fc9" stop-opacity=".3"/>
+      <stop offset="1" stop-color="#008fc9" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="Namnlös_övertoning_10" data-name="Namnlös övertoning 10" cx="69.97" cy="74.16" fx="69.97" fy="74.16" r="68.23" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f64370"/>
+      <stop offset=".09" stop-color="#f64370" stop-opacity=".96"/>
+      <stop offset=".23" stop-color="#f64370" stop-opacity=".86"/>
+      <stop offset=".42" stop-color="#f64370" stop-opacity=".69"/>
+      <stop offset=".63" stop-color="#f64370" stop-opacity=".46"/>
+      <stop offset=".87" stop-color="#f64370" stop-opacity=".16"/>
+      <stop offset="1" stop-color="#f64370" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <g class="cls-5">
+    <rect width="180" height="180"/>
+    <g>
+      <circle class="cls-3" cx="106.65" cy="104.92" r="71.08"/>
+      <circle class="cls-4" cx="69.97" cy="74.16" r="68.23"/>
+      <path class="cls-2" d="M92.73,113.57v31.96c.58.02,1.17.03,1.76.03,15.24,0,29.05-6.13,39.1-16.06l-22.34-22.34c-4.43,4.03-10.31,6.48-16.76,6.48-.59,0-1.18-.02-1.76-.06M90.72,64.08v-29.65c-28.96,1.94-51.86,26.04-51.86,55.5s22.89,53.56,51.86,55.5v-32.08c-11.97-1.82-21.15-12.16-21.15-24.64s9.18-22.82,21.15-24.64"/>
+    </g>
+  </g>
+</svg>

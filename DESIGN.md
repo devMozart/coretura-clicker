@@ -1,0 +1,340 @@
+# Coretura Clicker — Game Design Document
+
+> A just-for-fun incremental/idle game for Coretura, in the spirit of *Cookie Clicker*.
+> Click the Coretura Core to write code; scale a software company from one intern to a
+> self-improving Software-Defined Vehicle platform.
+
+**Audience:** internal fun first; possibly a public "toy" on coretura.com later.
+**One-liner:** *Advancing mobility at the speed of clicks.*
+
+---
+
+## 1. Purpose & scope
+
+A small, delightful side-project. It should **feel like Cookie Clicker** (one satisfying
+click, exponential growth, cheap doubling upgrades, rare bonus pickups, running-joke news
+ticker, a slow tonal escalation) while every theme is **specific and true to Coretura**.
+
+It does **not** need to be a complete, balanced, endgame-grade economy. Priorities:
+
+1. The click feels good.
+2. The themes are unmistakably Coretura (not generic "tech startup").
+3. It's easy to show a colleague or a stranger and have them "get it" in 10 seconds.
+
+---
+
+## 2. Research findings
+
+### 2.1 Coretura (the subject)
+
+Pulled from internal brand, product, and story material. Use these as the source of truth
+for theming and copy.
+
+| Fact | Detail | Use in game |
+|---|---|---|
+| What it is | Software-Defined Vehicle (SDV) **platform for commercial vehicles** | Core narrative: you're building *the platform* |
+| Tagline | **"Advancing mobility at the speed of ideas"** | Title screen; endgame payoff line |
+| Portfolio line | **"One platform. Three trims. Every market."** | Upgrade names; market-expansion milestones |
+| Scale | ~110–115 people and growing; Swedish (Coretura AB) | Early producers = hiring; startup framing |
+| Product pillars | SDV Platform, **NGCP** (Next-Gen Connectivity Platform), Vision & Perception, **System Architecture Lab**, OTA | Producer/building names |
+| Ecosystem | QNX/BlackBerry, Qualcomm, Green Hills, Ambarella, Valeo, KPIT, Luxoft/DXC, Capgemini, Harman, Volvo | Flavor text, late-game "partner" upgrades |
+| Framing words | "Start · Focus · Team", "United by a clear common vision", "build, operate, innovate" | Tone; achievement names; prestige tiers |
+
+**Tone of voice:** confident, forward-looking, plain-spoken ("write from the user's side of
+the screen"). The game's humour should be warm and knowing, never cynical about the company.
+
+### 2.2 Brand identity (visual source of truth)
+
+```
+Coretura Blue      #008FC9   (RGB 0/143/201)   primary
+Coretura Blue br.  #06AFE3                      bright accent / glow
+Coretura Red/Pink  #F64370   (RGB 246/67/112)  events, warnings, secondary accent
+Dark Blue          #002540   (RGB 0/37/64)     deep background
+Beige              #F2F1ED   (RGB 242/241/237) light surfaces / text
+```
+- **Symbol:** a *modular grid mark* — rounded square blocks with ~1px gaps, defined on
+  48×48 / 16×16 grids. There is a dedicated "Software symbol" variant. The clickable Core
+  should be built from these rounded blocks (the prototype approximates this).
+- **Swap-in task:** replace the placeholder SVG core + emoji building icons with the real
+  brand SVGs. This is the single highest-impact polish step.
+
+### 2.3 Cookie Clicker (the mechanical reference)
+
+What makes it work, and what we're borrowing:
+
+- **The click:** one big object, instant feedback (`+N` floater, squash animation, sound).
+- **Buildings/producers:** each has a base cost and base output; **cost grows ×1.15 per unit
+  owned**. This geometric curve is the whole pacing engine — reuse it.
+- **Upgrades:** cheap, usually **double** a building or the click. Buy-before-build is almost
+  always correct; that tension drives decisions.
+- **Golden Cookies:** rare floating pickups granting short buffs (Frenzy = ×7 output ~short
+  window; Lucky = instant payout). High skill ceiling, low complexity.
+- **Bank vs baked:** *spendable* balance is separate from *all-time* total (score). Key idea —
+  see the economy section; it's the clean way to keep a "score" you never spend.
+- **Ascension/prestige:** hard reset for a permanent multiplier currency. Adds a second,
+  longer loop.
+- **Flavour:** achievements, a **running-joke news ticker**, and a slow drift from mundane to
+  cosmic. The comedy is load-bearing.
+
+---
+
+## 3. Core design
+
+### 3.1 The loop
+
+```
+click / auto-produce  →  Lines of Code (LoC)
+LoC ships             →  Funding (€)
+spend Funding         →  hire people + buy infrastructure
+more people/infra     →  more LoC/s   ↺
+milestones            →  unlock trims/markets, then a Funding Round (prestige) ↺↺
+```
+
+### 3.2 The economy — resources (**the Intern fix**)
+
+**Problem:** buying an *Intern* with *Lines of Code* feels backwards — LoC is an output, not
+money. Cookie Clicker only gets away with "buy a grandma with cookies" because cookies are
+absurd. Coretura is a real flywheel, so we lean into it.
+
+**Recommended model — "Ship → Fund → Scale" (two light resources):**
+
+- **Lines of Code (LoC)** — generated by clicking the Core and by producers. This is your
+  *throughput* and your *all-time score*. **You never spend it.** It gates milestones
+  (unlock trims, markets, prestige) and drives achievements. Clicking still literally
+  "writes code" — the beloved verb is preserved.
+- **Funding (€)** — shipped code earns money. LoC **auto-ships into Funding** at a rate
+  `shipRate` (default: continuous; an optional active **"Ship release / OTA"** button can
+  give a manual burst for engaged players). **Funding is the spend currency** for hiring and
+  infrastructure. "Hire an Intern for €X" now reads correctly.
+
+Why the split is worth the (small) extra complexity: it's the actual startup flywheel, it's
+on-brand for a scaling company, and it unlocks **funding-round prestige** (below), which is a
+far better fit than "heavenly chips."
+
+> **Alternatives** (pick one if you'd rather stay single-currency):
+>
+> - **A. One currency, renamed + reframed.** Currency = **Commits** (or Credits). Don't
+>   "buy" — you **recruit / provision / allocate**. Simplest; keeps a pure single loop. The
+>   verb change alone removes ~80% of the ick. Downside: still slightly odd to pay people in
+>   commits.
+> - **C. Full two-track (deluxe).** Split producers into **Engineering** (make LoC) and
+>   **Go-to-market / Delivery** (raise `shipRate` and Funding multipliers). Real strategic
+>   texture; more to balance. Good as a phase-2 evolution of the recommended model.
+
+**MVP simplification:** implement the recommended model with a fixed `shipRate` (e.g. 100% of
+LoC/s converts to € at some ratio). Keep LoC as the visible headline number + score; show €
+as the spend balance. If that feels like one number wearing two hats early on, that's fine —
+the two diverge in interest once GTM upgrades exist.
+
+### 3.3 Producers ("buildings")
+
+Escalating ladder from mundane dev work → shipping to the whole fleet → the platform writing
+itself. Base cost / base output pairs are a proven incremental curve — **keep them**, tune
+later. Cost of the *n*-th unit = `ceil(baseCost × 1.15^owned)`.
+
+| # | Producer | Base cost | Base LoC/s | Flavor |
+|---|---|---|---|---|
+| 1 | 🧑‍💻 Intern | 15 | 0.1 | Writes code. Occasionally correct code. |
+| 2 | 👩‍💻 Software Engineer | 100 | 1 | Commits while you sleep. Mostly. |
+| 3 | 🔁 CI/CD Pipeline | 1,100 | 8 | Green means go. Red means Monday. |
+| 4 | 🤖 Code Review Bot | 12,000 | 47 | "Approved, but I left 41 comments." |
+| 5 | 📡 Connectivity Node (NGCP) | 130,000 | 260 | Vehicles now have better signal than you. |
+| 6 | 🧪 System Architecture Lab | 1.4M | 1,400 | Folds the sprint backlog into a Möbius strip. |
+| 7 | 🚚 Test Truck | 20M | 7,800 | One platform, three trims, every market. |
+| 8 | 🛰️ OTA Update Satellite | 330M | 44,000 | Patches the whole fleet before breakfast. |
+| 9 | 🧬 Digital Twin | 5.1B | 260,000 | It ships faster than you. It knows. |
+| 10 | 🖥️ Data Center | 75B | 1.6M | Warm enough to heat the whole office. |
+| 11 | 🧠 Autonomy Core | 1T | 10M | Writes code that writes code. |
+| 12 | ✨ The Platform | 14T | 65M | Mobility, at the literal speed of ideas. |
+
+> Note on framing: producers 1–2 are **people** (hired with €). Producers 3+ are **systems/
+> infra** (bought/provisioned). This makes the €-cost story coherent across the whole ladder.
+
+**Reveal rule:** show a producer once owned>0 **or** all-time LoC ≥ 40% of its base cost;
+once shown, it stays shown (sticky unlock).
+
+### 3.4 Upgrades
+
+Cheap, mostly-doubling, condition-gated. Two families:
+
+- **Named** (hand-written, characterful):
+
+  | Upgrade | Cost | Effect | Unlock | Flavor |
+  |---|---|---|---|---|
+  | ⌨️ Mechanical keyboard | 100 | click ×2 | 10 clicks | Louder, and 2× as productive. |
+  | 🖥️ Second monitor | 2,000 | click ×2 | 50 clicks | Twice the screens. |
+  | 🦆 Rubber duck | 50,000 | click ×2 | 120 clicks | It just listens. Clicks 2× wiser. |
+  | ⚡ Touch-typing course | 2M | click also earns 1% of LoC/s | 300 clicks | — |
+  | ☕ Real espresso machine | 8,000 | +5% global | 10 producers | Team runs hotter. |
+  | 🤝 Pair programming | 500,000 | +7% global | 25 producers | Fewer bugs, more output. |
+  | 🌙 Dark mode | 5M | +10% global | 40 producers | Objectively faster. |
+  | 🧩 One platform, three trims | 500M | +15% global | own a Test Truck | Reuse everywhere. |
+  | 🌍 Fleet-wide rollout | 10B | +25% global | own an OTA Satellite | Every vehicle, everywhere. |
+
+- **Generated** (per producer): a **"Better X"** doubler at unlock `owned≥1` (cost ≈ base×12)
+  and an **"Elite X"** doubler at `owned≥10` (cost ≈ base×120). Extend to more tiers later
+  (Cookie Clicker unlocks further tiers at 25/50/100…).
+
+- **Partner upgrades (phase 2):** late-game boosts named after the real ecosystem (QNX,
+  Qualcomm, Green Hills, Valeo, Volvo). E.g. *"Certified on QNX"*, *"Qualcomm silicon"* —
+  each a large global multiplier gated behind high producer counts.
+
+### 3.5 Events (the "Golden Cookie")
+
+A pickup floats onto the stage every ~45–90s, lingers ~13s:
+
+- **✅ Green Build** (common). On click, randomly:
+  - **🔥 Hackathon** — LoC/s (and thus Funding) ×7 for ~20s (*Frenzy*).
+  - **🚀 Shipped it!** — instant Funding payout ≈ `min(15 min of production, 15% of bank)`
+    (*Lucky*).
+- **⚠️ Merge Conflict** (rare, ~18%). Optional risk: ignore it and it expires harmlessly, or
+  click for a small hit (lose a little Funding). Adds spice without punishing idle players.
+
+### 3.6 Achievements
+
+Toast on unlock; each grants a small permanent **+1% global** ("code quality" — our
+milk/kitten analog). Starter set:
+
+`Hello, world` (1 LoC) · `Kilo-coder` (1K) · `Merge master` (1M) · `Billion-line codebase`
+(1B) · `RSI incoming` (100 clicks) · `Keyboard warrior` (1K clicks) · `Small startup`
+(10 people) · `Rolling fleet` (10 trucks) · `It writes itself` (own Autonomy Core) ·
+`Continuous delivery` (1K LoC/s) · `Ship it` (catch a Green Build) · `The singularity`
+(own The Platform).
+
+### 3.7 Prestige — **Funding Rounds** (phase 2)
+
+The second, longer loop, and a much better fit than "heavenly chips":
+
+- Hard-reset the company for **Vision** (permanent prestige currency), earned from all-time
+  LoC at reset. Each Vision point = permanent **+X% output** in future runs.
+- Prestige tiers are literal funding stages: **Bootstrapped → Seed → Series A → Series B →
+  Series C → IPO**. Each round: bigger multipliers, new flavor, maybe unlock a new market
+  ("Every market").
+- Optional deeper hooks later: spend Vision on a small tree (mirrors Coretura's "Start ·
+  Focus · Team" or "build · operate · innovate").
+
+### 3.8 Tonal arc / lore
+
+Mundane → cosmic, but **optimistic** (Coretura's voice), not Cookie Clicker's grandma horror:
+
+> Fix one intern's semicolons → hire a team → automate the pipeline → connect the fleet →
+> ship over-the-air to every commercial vehicle on Earth → the platform starts improving
+> itself → *mobility, at the literal speed of ideas.*
+
+A light "uprising" beat can replace the Grandmapocalypse (see roadmap): **Technical Debt
+Uprising** — push too fast and bugs spawn as clickable pests (wrinklers) that skim output but
+pay out when squashed.
+
+### 3.9 News ticker copy (original — safe to ship)
+
+Cycle these; write more in the same voice (knowing, warm, escalating):
+
+- Intern discovers the semicolon; team velocity mysteriously doubles.
+- Standup ends on time for first time in recorded history. Scientists baffled.
+- Entire truck fleet gains sentience, unanimously requests softer seats.
+- Technical debt spotted forming a union outside the office.
+- OTA update accidentally makes every vehicle 3% funnier.
+- System Architecture Lab folds spacetime to shorten the sprint by one day.
+- Connectivity now so good, vehicles gossip about their drivers.
+- Legacy code left unrefactored for years achieves consciousness, asks for hobbies.
+- "Advancing mobility at the speed of ideas" now literally true; legal concerned.
+- Digital twin files for the same PTO you were about to request.
+- Autonomy Core reviews its own pull request, approves instantly.
+- The Platform quietly ships v∞; changelog reads only "you're welcome."
+
+---
+
+## 4. Visual & UX spec
+
+- **Direction:** "night-build console." Deep Coretura dark-blue background, faint blueprint
+  grid, glowing cyan Core. Reserve pink/red for events + warnings only. This reads as an
+  engineering product, not a bakery.
+- **Type:** display = *Space Grotesk*; UI = *Inter*; **numbers/code = a monospace**
+  (*JetBrains Mono*) — mono readouts make the counters feel like a build log. Ship with
+  system fallbacks so it works offline.
+- **Signature moment:** the Core is a modular rounded-block mark; clicking squashes it,
+  emits a `+N` code floater, and ripples a **connectivity pulse** outward (nods to SDV /
+  NGCP). Spend the "boldness budget" here; keep everything else quiet.
+- **Layout:** top bar (brand + stats) · center stage (headline number, Core, hint) · right
+  store (upgrades tray on top, producer list below with ×1/×10/×100 buy toggle) · bottom
+  news ticker. Stack to single column under ~820px.
+- **Number formatting:** integers under 1,000; then K / M / B / T / Qa / Qi / Sx / Sp /
+  Oc / No / Dc… with 2–3 significant figures.
+- **Quality floor:** responsive to mobile, visible keyboard focus, `prefers-reduced-motion`
+  respected, `Space` = click.
+
+---
+
+## 5. Technical notes (for Claude Code)
+
+- **Prototype:** `coretura-clicker.html` — a single self-contained file (vanilla JS, no
+  build step, in-memory state). Good reference for feel, fx, and the producer/upgrade engine.
+- **For a repo,** two reasonable paths:
+  - **Keep it single-file vanilla** (easiest to host, zero deps) — split into `index.html`,
+    `styles.css`, `game.js`, `content.js` (producers/upgrades/news/achievements as data).
+  - **Or Vite + TypeScript + small state store** if you want tests and cleaner content data.
+    Recommended if this grows past the MVP.
+- **Data-driven content:** keep producers, upgrades, achievements, and news as plain data
+  arrays (as in the prototype) so balancing = editing numbers, and Claude Code can extend
+  content without touching logic.
+- **Saving:** the prototype has none (browser-artifact limitation). In a real repo, add
+  `localStorage` autosave every few seconds + export/import save string. **Not** available
+  inside Claude.ai artifacts, but fine on a hosted site.
+- **Game loop:** `requestAnimationFrame` for HUD/production; a cheaper interval for the
+  upgrade tray. Recompute all multipliers from scratch each tick from `{bought upgrades} +
+  {achievements} + {counts}` — avoids double-apply bugs.
+- **Balancing knobs to expose:** `COST_GROWTH = 1.15`, per-producer `baseCost`/`baseCps`,
+  `shipRate` (LoC→€), event interval + buff strengths, achievement global bonus,
+  Vision/prestige formula.
+- **Assets to add:** real Coretura Core SVG (+ small "Software symbol"), producer icons,
+  favicon, optional click/UI sounds (respect a mute toggle).
+
+### Suggested repo layout
+```
+coretura-clicker/
+├─ index.html
+├─ src/
+│  ├─ game.js         # loop, economy, multiplier recompute
+│  ├─ content.js      # producers, upgrades, achievements, news (data)
+│  ├─ ui.js           # rendering, tooltips, toasts, ticker
+│  ├─ events.js       # green build / merge conflict
+│  ├─ save.js         # localStorage autosave + export/import
+│  └─ styles.css
+├─ assets/            # logo SVGs, icons, sounds
+├─ DESIGN.md          # this file
+└─ README.md
+```
+
+---
+
+## 6. Roadmap
+
+**MVP (feel + theme, ship this first)**
+- Click → LoC, LoC → Funding, spend Funding on producers.
+- 12 producers, ×1.15 scaling, ×1/×10/×100 buy.
+- ~15–20 upgrades (named + generated doublers).
+- Green Build / Merge Conflict events.
+- ~12 achievements + toasts.
+- News ticker, number formatting, brand look, `localStorage` save.
+
+**Phase 2 (depth)**
+- Funding-round prestige (Vision) + tiers.
+- Partner/ecosystem upgrades.
+- Technical Debt Uprising minigame (wrinkler analog).
+- Engineering vs GTM producer split (economy Option C).
+- Sound, settings, stats screen, export/import.
+
+**Phase 3 (public-facing polish)**
+- Real brand SVGs everywhere, mobile pass, share/leaderboard, seasonal event copy.
+
+---
+
+## 7. Open decisions
+
+1. **Economy model:** recommended *Ship→Fund→Scale* (two resources) vs single-currency
+   Option A. Locks in a lot downstream — decide first.
+2. **Currency name for the spend resource:** *Funding / €* vs *Credits* vs *Commits*.
+3. **Active vs idle emphasis:** is the manual "Ship release" button in, or is shipping fully
+   passive? (Affects how much clicking matters mid-game.)
+4. **Public or internal only** — changes tone latitude on the news ticker.
+5. **Real logo/icon assets** — who provides the SVGs.
