@@ -14,7 +14,6 @@ interface SaveShape {
   owned: Record<string, number>;
   upgrades: string[];
   achievements: string[];
-  revealed: string[];
   muted: boolean;
   lastSaved: number;
 }
@@ -28,7 +27,6 @@ export function save(s: State): void {
     owned: s.owned,
     upgrades: [...s.upgrades],
     achievements: [...s.achievements],
-    revealed: [...s.revealed],
     muted: s.muted,
     lastSaved: s.lastSaved,
   };
@@ -51,7 +49,6 @@ export function load(): State | null {
     s.owned = data.owned ?? {};
     s.upgrades = new Set(data.upgrades ?? []);
     s.achievements = new Set(data.achievements ?? []);
-    s.revealed = new Set(data.revealed ?? []);
     s.muted = data.muted ?? false;
     s.lastSaved = data.lastSaved ?? Date.now();
     return s;

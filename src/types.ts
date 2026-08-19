@@ -43,6 +43,7 @@ export interface UpgradeDef {
 export interface AchievementDef {
   id: string;
   name: string;
+  icon: string;
   desc: string;
   check: (s: State, d: Derived) => boolean;
 }
@@ -52,7 +53,6 @@ export interface TimedEffect {
   id: string;
   name: string;
   icon: string;
-  /** what the multiplier applies to */
   kind: 'production' | 'click' | 'people' | 'producer';
   producerId?: string;
   mult: number;
@@ -68,7 +68,6 @@ export interface State {
   owned: Record<string, number>;
   upgrades: Set<string>;
   achievements: Set<string>;
-  revealed: Set<string>;
   effects: TimedEffect[];
   muted: boolean;
   lastSaved: number;

@@ -70,7 +70,6 @@ export function spawnFloater(layer: HTMLElement, x: number, y: number, text: str
   el.addEventListener('animationend', () => el.remove());
 }
 
-/** Connectivity pulse: an expanding ring emitted from the Core. */
 export function spawnPulse(container: HTMLElement): void {
   if (reducedMotion()) return;
   const ring = document.createElement('div');

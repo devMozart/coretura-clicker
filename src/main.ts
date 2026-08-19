@@ -1,6 +1,6 @@
 import './style.css';
-import { ACHIEVEMENT_BY_ID, BURST_INTERVAL } from './content';
-import { checkAchievements, click, derive, newState, pruneEffects, tick, updateReveals } from './game';
+import { ACHIEVEMENT_BY_ID, ACHIEVEMENTS, BURST_INTERVAL } from './content';
+import { checkAchievements, click, derive, newState, pruneEffects, tick } from './game';
 import { EventDirector } from './events';
 import { fmt } from './format';
 import { load, OFFLINE_CAP_SECONDS, save, wipe } from './save';
@@ -44,7 +44,6 @@ ui.onCoreClick = (x, y) => {
 ui.onPurchase = () => runChecks();
 
 function runChecks(): void {
-  updateReveals(state);
   for (const id of checkAchievements(state, derive(state))) announceAchievement(id);
 }
 
@@ -82,17 +81,17 @@ setInterval(() => {
   ui.refreshStore();
 }, 250);
 
-// Autosave.
 setInterval(() => save(state), 5000);
 const saveOnUnload = () => save(state);
 window.addEventListener('beforeunload', saveOnUnload);
 
-/** Wipe the save and start over (used by the dev console handle). */
 function hardReset(): void {
   window.removeEventListener('beforeunload', saveOnUnload);
   wipe();
   location.reload();
 }
+
+document.getElementById('ach-total')!.textContent = String(ACHIEVEMENTS.length);
 
 runChecks();
 ui.refreshStore();

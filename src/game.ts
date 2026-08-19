@@ -7,8 +7,6 @@ export const COST_GROWTH = 1.15;
 export const SHIP_RATE = 1;
 /** Permanent global bonus per achievement ("code quality"). */
 export const ACHIEVEMENT_BONUS = 0.01;
-/** Producer appears once all-time LoC reaches this fraction of its base cost. */
-export const REVEAL_FRACTION = 0.4;
 /** Tech Lead: output bonus to 'people' producers per owned. */
 export const TECHLEAD_BONUS = 0.02;
 /** DevOps Engineer: bonus to all production per owned. */
@@ -24,7 +22,6 @@ export function newState(): State {
     owned: {},
     upgrades: new Set(),
     achievements: new Set(),
-    revealed: new Set(),
     effects: [],
     muted: false,
     lastSaved: Date.now(),
@@ -195,17 +192,6 @@ export function buyUpgrade(s: State, id: string): boolean {
   return true;
 }
 
-/** Sticky producer reveal: owned>0 or all-time LoC ≥ 40% of base cost. */
-export function updateReveals(s: State): void {
-  for (const p of PRODUCERS) {
-    if (s.revealed.has(p.id)) continue;
-    if ((s.owned[p.id] ?? 0) > 0 || s.loc >= p.baseCost * REVEAL_FRACTION) {
-      s.revealed.add(p.id);
-    }
-  }
-}
-
-/** Upgrades currently offered in the store: unlocked, not yet bought. */
 export function visibleUpgrades(s: State) {
   return UPGRADES.filter((u) => !s.upgrades.has(u.id) && u.unlocked(s));
 }

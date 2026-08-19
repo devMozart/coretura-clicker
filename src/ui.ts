@@ -1,4 +1,12 @@
-import { BURST_INTERVAL, PRODUCERS, PRODUCER_BY_ID, UPGRADE_BY_ID } from './content';
+import {
+  ACHIEVEMENT_BY_ID,
+  ACHIEVEMENTS,
+  BURST_INTERVAL,
+  PRODUCERS,
+  PRODUCER_BY_ID,
+  UPGRADE_BY_ID,
+  UPGRADES,
+} from './content';
 import { bulkCost, buyProducer, buyUpgrade, derive, visibleUpgrades } from './game';
 import { fmt, fmtRate } from './format';
 import { reducedMotion, setMuted, sound, spawnFloater, spawnPulse } from './fx';
@@ -21,6 +29,10 @@ export class UI {
   private coreWrap = el('core-wrap');
   private floaters = el('floaters');
   private upgradeTray = el('upgrades');
+  private ownedTray = el('owned');
+  private ownedCount = el('owned-count');
+  private achievementGrid = el('achievements');
+  private achievementCount = el('ach-count');
   private producerList = el('producers');
   private toasts = el('toasts');
   private tooltip = el('tooltip');
@@ -30,10 +42,14 @@ export class UI {
   private buyAmount = 1;
   private producerRows = new Map<string, HTMLButtonElement>();
   private upgradeKey = '';
+  private ownedKey = '';
+  private achievementKey = '';
+  private upgradeTab: 'store' | 'active' = 'store';
 
   constructor(private state: State) {
     this.wireCore();
     this.wireBuyToggle();
+    this.wireUpgradeTabs();
     this.wireMute();
   }
 
@@ -85,6 +101,28 @@ export class UI {
     });
   }
 
+  private wireUpgradeTabs(): void {
+    const tabs = el('upgrade-tabs');
+    tabs.querySelectorAll<HTMLButtonElement>('button').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        this.upgradeTab = btn.dataset.tab === 'active' ? 'active' : 'store';
+        tabs.querySelectorAll('button').forEach((b) => {
+          const on = b === btn;
+          b.classList.toggle('active', on);
+          b.setAttribute('aria-selected', String(on));
+        });
+        this.hideTooltip(); // the tile it belonged to is about to be hidden
+        this.showUpgradeTab();
+      });
+    });
+  }
+
+  private showUpgradeTab(): void {
+    const store = this.upgradeTab === 'store';
+    this.upgradeTray.classList.toggle('hidden', !store);
+    this.ownedTray.classList.toggle('hidden', store);
+  }
+
   private wireMute(): void {
     this.renderMute();
     this.muteBtn.addEventListener('click', () => {
@@ -125,7 +163,6 @@ export class UI {
     }
   }
 
-  /** Consultant deliverable landing: a chunky floater near the Core. */
   burstFeedback(amount: number): void {
     const stageRect = this.stage.getBoundingClientRect();
     const coreRect = this.core.getBoundingClientRect();
@@ -141,12 +178,39 @@ export class UI {
   refreshStore(): void {
     this.renderProducers();
     this.renderUpgrades();
+    this.renderAchievements();
+  }
+
+  private renderAchievements(): void {
+    const s = this.state;
+    this.achievementCount.textContent = String(s.achievements.size);
+    const key = ACHIEVEMENTS.map((a) => (s.achievements.has(a.id) ? a.id : '')).join(',');
+    if (key === this.achievementKey) return;
+    this.achievementKey = key;
+
+    this.achievementGrid.innerHTML = '';
+    for (const a of ACHIEVEMENTS) {
+      const earned = s.achievements.has(a.id);
+      const tile = document.createElement('button');
+      tile.type = 'button';
+      tile.className = earned ? 'tile inert' : 'tile inert locked';
+      tile.dataset.id = a.id;
+      tile.innerHTML = `<span>${a.icon}</span>`;
+      this.attachTooltip(tile, () => this.achievementTooltip(a.id));
+      this.achievementGrid.appendChild(tile);
+    }
+  }
+
+  private achievementTooltip(id: string): string {
+    const a = ACHIEVEMENT_BY_ID[id];
+    const earned = this.state.achievements.has(id);
+    const status = earned ? 'Earned · +1% code quality' : 'Locked';
+    return `<strong>${a.icon} ${a.name}</strong><em>${a.desc}</em><span>${status}</span>`;
   }
 
   private renderProducers(): void {
     const s = this.state;
     for (const p of PRODUCERS) {
-      if (!s.revealed.has(p.id)) continue;
       let row = this.producerRows.get(p.id);
       if (!row) {
         row = this.buildProducerRow(p.id);
@@ -214,7 +278,7 @@ export class UI {
       this.upgradeTray.innerHTML = '';
       for (const u of visible) {
         const btn = document.createElement('button');
-        btn.className = 'upgrade-btn';
+        btn.className = 'tile';
         btn.dataset.id = u.id;
         btn.innerHTML = `<span>${u.icon}</span>`;
         btn.addEventListener('click', () => {
@@ -229,15 +293,39 @@ export class UI {
         this.upgradeTray.appendChild(btn);
       }
     }
-    this.upgradeTray.querySelectorAll<HTMLButtonElement>('.upgrade-btn').forEach((btn) => {
+    this.upgradeTray.querySelectorAll<HTMLButtonElement>('.tile').forEach((btn) => {
       const u = UPGRADE_BY_ID[btn.dataset.id!];
       btn.classList.toggle('unaffordable', s.funding < u.cost);
     });
     this.upgradeTray.classList.toggle('empty', visible.length === 0);
+    this.renderOwned();
   }
 
-  private upgradeTooltip(u: UpgradeDef): string {
-    return `<strong>${u.icon} ${u.name}</strong><em>${u.flavor}</em><span>€${fmt(u.cost)}</span>`;
+  private renderOwned(): void {
+    const s = this.state;
+    const owned = UPGRADES.filter((u) => s.upgrades.has(u.id));
+    this.ownedCount.textContent = String(owned.length);
+    const key = owned.map((u) => u.id).join(',');
+    if (key === this.ownedKey) return;
+    this.ownedKey = key;
+
+    this.ownedTray.innerHTML = '';
+    for (const u of owned) {
+      const tile = document.createElement('button');
+      tile.type = 'button';
+      tile.className = 'tile inert';
+      tile.dataset.id = u.id;
+      tile.innerHTML = `<span>${u.icon}</span>`;
+      this.attachTooltip(tile, () => this.upgradeTooltip(u, true));
+      this.ownedTray.appendChild(tile);
+    }
+    this.ownedTray.classList.toggle('empty', owned.length === 0);
+    this.showUpgradeTab();
+  }
+
+  private upgradeTooltip(u: UpgradeDef, owned = false): string {
+    const price = owned ? 'Owned' : `€${fmt(u.cost)}`;
+    return `<strong>${u.icon} ${u.name}</strong><em>${u.flavor}</em><span>${price}</span>`;
   }
 
   // --- Tooltip -----------------------------------------------------------------

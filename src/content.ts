@@ -2,11 +2,7 @@ import type { AchievementDef, ProducerDef, State, UpgradeDef } from './types';
 
 // ---------------------------------------------------------------------------
 // Producers — people ladder first, then infrastructure. Balancing = editing
-// these numbers. Specials give mechanical identity beyond raw LoC/s:
-//   burst     output lands as a lump every 10s (Consultant)
-//   techlead  +2% to all 'people' output per owned
-//   ai        +5% own output per upgrade purchased anywhere
-//   devops    +1% to ALL production per owned
+// these numbers. See ProducerSpecial for what the `special` flags do.
 // ---------------------------------------------------------------------------
 
 export const PRODUCERS: ProducerDef[] = [
@@ -132,28 +128,28 @@ const peopleCount = (s: State) =>
   PRODUCERS.filter((p) => p.kind === 'people').reduce((sum, p) => sum + own(s, p.id), 0);
 
 export const ACHIEVEMENTS: AchievementDef[] = [
-  { id: 'hello',       name: 'Hello, world',            desc: 'Write your first line of code.',       check: (s) => s.loc >= 1 },
-  { id: 'kilo',        name: 'Kilo-coder',              desc: 'Write 1,000 lines of code.',           check: (s) => s.loc >= 1e3 },
-  { id: 'merge',       name: 'Merge master',            desc: 'Write 1 million lines of code.',       check: (s) => s.loc >= 1e6 },
-  { id: 'billion',     name: 'Billion-line codebase',   desc: 'Write 1 billion lines of code.',       check: (s) => s.loc >= 1e9 },
-  { id: 'trillion',    name: 'Trillion-line era',       desc: 'Write 1 trillion lines of code.',      check: (s) => s.loc >= 1e12 },
-  { id: 'rsi',         name: 'RSI incoming',            desc: 'Click the Core 100 times.',            check: (s) => s.clicks >= 100 },
-  { id: 'warrior',     name: 'Keyboard warrior',        desc: 'Click the Core 1,000 times.',          check: (s) => s.clicks >= 1e3 },
-  { id: 'startup',     name: 'Small startup',           desc: 'Hire 10 people.',                      check: (s) => peopleCount(s) >= 10 },
-  { id: 'scaleup',     name: 'Scale-up mode',           desc: 'Hire 50 people.',                      check: (s) => peopleCount(s) >= 50 },
-  { id: 'internarmy',  name: 'Intern army',             desc: 'Employ 100 Interns.',                  check: (s) => own(s, 'intern') >= 100 },
-  { id: 'email',       name: 'Could’ve been an email',  desc: 'Schedule 10 Meetings.',                check: (s) => own(s, 'meeting') >= 10 },
-  { id: 'aiten',       name: 'It reviews its own PRs',  desc: 'Deploy 10 AI Assistants.',             check: (s) => own(s, 'ai') >= 10 },
-  { id: 'fleet',       name: 'Rolling fleet',           desc: 'Own 10 Test Trucks.',                  check: (s) => own(s, 'truck') >= 10 },
-  { id: 'itself',      name: 'It writes itself',        desc: 'Own an Autonomy Core.',                check: (s) => own(s, 'autonomy') >= 1 },
-  { id: 'singularity', name: 'The singularity',         desc: 'Own The Platform.',                    check: (s) => own(s, 'platform') >= 1 },
-  { id: 'delivery',    name: 'Continuous delivery',     desc: 'Reach 1,000 LoC per second.',          check: (_s, d) => d.locPerSec >= 1e3 },
-  { id: 'velocity',    name: 'Ludicrous velocity',      desc: 'Reach 1 million LoC per second.',      check: (_s, d) => d.locPerSec >= 1e6 },
-  { id: 'shipit',      name: 'Ship it',                 desc: 'Catch a lucky event.',                 check: () => false },
-  { id: 'firefighter', name: 'Firefighter',             desc: 'Fix a Production Bug in time.',        check: () => false },
-  { id: 'rebase',      name: 'Rebase hell survivor',    desc: 'Resolve a Merge Conflict.',            check: () => false },
-  { id: 'hotfixhero',  name: 'Hotfix hero',             desc: 'Land 10 clicks on one Critical Hotfix.', check: () => false },
-  { id: 'caffeine',    name: 'Hand-rolled code',        desc: 'Clear an AI Outage.',                  check: () => false },
+  { id: 'hello',       name: 'Hello, world',            icon: '👋', desc: 'Write your first line of code.',       check: (s) => s.loc >= 1 },
+  { id: 'kilo',        name: 'Kilo-coder',              icon: '📜', desc: 'Write 1,000 lines of code.',           check: (s) => s.loc >= 1e3 },
+  { id: 'merge',       name: 'Merge master',            icon: '🔀', desc: 'Write 1 million lines of code.',       check: (s) => s.loc >= 1e6 },
+  { id: 'billion',     name: 'Billion-line codebase',   icon: '📚', desc: 'Write 1 billion lines of code.',       check: (s) => s.loc >= 1e9 },
+  { id: 'trillion',    name: 'Trillion-line era',       icon: '🌌', desc: 'Write 1 trillion lines of code.',      check: (s) => s.loc >= 1e12 },
+  { id: 'rsi',         name: 'RSI incoming',            icon: '🖱️', desc: 'Click the Core 100 times.',            check: (s) => s.clicks >= 100 },
+  { id: 'warrior',     name: 'Keyboard warrior',        icon: '⚔️', desc: 'Click the Core 1,000 times.',          check: (s) => s.clicks >= 1e3 },
+  { id: 'startup',     name: 'Small startup',           icon: '🌱', desc: 'Hire 10 people.',                      check: (s) => peopleCount(s) >= 10 },
+  { id: 'scaleup',     name: 'Scale-up mode',           icon: '📈', desc: 'Hire 50 people.',                      check: (s) => peopleCount(s) >= 50 },
+  { id: 'internarmy',  name: 'Intern army',             icon: '🐜', desc: 'Employ 100 Interns.',                  check: (s) => own(s, 'intern') >= 100 },
+  { id: 'email',       name: 'Could’ve been an email',  icon: '📧', desc: 'Schedule 10 Meetings.',                check: (s) => own(s, 'meeting') >= 10 },
+  { id: 'aiten',       name: 'It reviews its own PRs',  icon: '🤖', desc: 'Deploy 10 AI Assistants.',             check: (s) => own(s, 'ai') >= 10 },
+  { id: 'fleet',       name: 'Rolling fleet',           icon: '🚚', desc: 'Own 10 Test Trucks.',                  check: (s) => own(s, 'truck') >= 10 },
+  { id: 'itself',      name: 'It writes itself',        icon: '♾️', desc: 'Own an Autonomy Core.',                check: (s) => own(s, 'autonomy') >= 1 },
+  { id: 'singularity', name: 'The singularity',         icon: '🌟', desc: 'Own The Platform.',                    check: (s) => own(s, 'platform') >= 1 },
+  { id: 'delivery',    name: 'Continuous delivery',     icon: '🔄', desc: 'Reach 1,000 LoC per second.',          check: (_s, d) => d.locPerSec >= 1e3 },
+  { id: 'velocity',    name: 'Ludicrous velocity',      icon: '⚡', desc: 'Reach 1 million LoC per second.',      check: (_s, d) => d.locPerSec >= 1e6 },
+  { id: 'shipit',      name: 'Ship it',                 icon: '🚢', desc: 'Catch a lucky event.',                 check: () => false },
+  { id: 'firefighter', name: 'Firefighter',             icon: '🚒', desc: 'Fix a Production Bug in time.',        check: () => false },
+  { id: 'rebase',      name: 'Rebase hell survivor',    icon: '🧶', desc: 'Resolve a Merge Conflict.',            check: () => false },
+  { id: 'hotfixhero',  name: 'Hotfix hero',             icon: '🦸', desc: 'Land 10 clicks on one Critical Hotfix.', check: () => false },
+  { id: 'caffeine',    name: 'Hand-rolled code',        icon: '✍️', desc: 'Clear an AI Outage.',                  check: () => false },
 ];
 
 export const ACHIEVEMENT_BY_ID: Record<string, AchievementDef> = Object.fromEntries(

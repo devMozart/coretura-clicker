@@ -7,6 +7,31 @@ import type { State } from './types';
 
 const MIN_INTERVAL = 40_000;
 const MAX_INTERVAL = 80_000;
+/** Clearance from the stage edges, with room for the bob animation. */
+const PICKUP_MARGIN = 12;
+const PICKUP_SHRINK_PER_CLICK = 0.03;
+/** Floor on the shrink, so a hammered pickup stays an easy target. */
+export const PICKUP_MIN_SCALE = 0.7;
+
+interface Box {
+  width: number;
+  height: number;
+}
+
+/** Pickups that never resolve on their own shrink a little on every click. */
+export function pickupScale(clicks: number): number {
+  return Math.max(PICKUP_MIN_SCALE, 1 - clicks * PICKUP_SHRINK_PER_CLICK);
+}
+
+/** Desired 0–1 spot in stage pixels, clamped so the whole pickup stays on stage. */
+export function pickupSpot(stage: Box, pickup: Box, frac: { x: number; y: number }): { x: number; y: number } {
+  const maxX = Math.max(PICKUP_MARGIN, stage.width - pickup.width - PICKUP_MARGIN);
+  const maxY = Math.max(PICKUP_MARGIN, stage.height - pickup.height - PICKUP_MARGIN);
+  return {
+    x: Math.min(Math.max(PICKUP_MARGIN, frac.x * stage.width), maxX),
+    y: Math.min(Math.max(PICKUP_MARGIN, frac.y * stage.height), maxY),
+  };
+}
 
 export interface EventCallbacks {
   toast: (icon: string, title: string, body: string, cls?: string) => void;
@@ -211,9 +236,6 @@ export class EventDirector {
         ? `<span class="event-count">0/${def.clicksRequired}</span>`
         : ''
     }`;
-    el.style.left = `${10 + Math.random() * 70}%`;
-    el.style.top = `${15 + Math.random() * 55}%`;
-
     def.onSpawn?.(this.ctx());
 
     let clicks = 0;
@@ -228,6 +250,8 @@ export class EventDirector {
       def.onClickEach?.(this.ctx(), clicks);
       const counter = el.querySelector('.event-count');
       if (counter) counter.textContent = `${clicks}/${required}`;
+      // `scale`, not `transform` — the bob animation owns that one.
+      if (required === Infinity) el.style.scale = String(pickupScale(clicks));
       if (clicks >= required) {
         window.clearTimeout(expire);
         this.dismiss();
@@ -238,6 +262,15 @@ export class EventDirector {
     });
 
     this.stage.appendChild(el);
+    // Needs to be in the DOM first: its own size decides how far out it may sit.
+    const spot = pickupSpot(
+      { width: this.stage.clientWidth, height: this.stage.clientHeight },
+      { width: el.offsetWidth, height: el.offsetHeight },
+      { x: 0.1 + Math.random() * 0.7, y: 0.15 + Math.random() * 0.55 },
+    );
+    el.style.left = `${spot.x}px`;
+    el.style.top = `${spot.y}px`;
+
     this.current = el;
     sound.event();
   }

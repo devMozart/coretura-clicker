@@ -39,7 +39,8 @@ button {
   cursor: pointer;
 }
 
-button:focus-visible {
+button:focus-visible,
+a:focus-visible {
   outline: 2px solid var(--blue-bright);
   outline-offset: 2px;
 }
@@ -117,16 +118,42 @@ button:focus-visible {
   box-shadow: 0 0 14px rgba(6, 175, 227, 0.45);
 }
 
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
 .brand-name {
   font-family: var(--font-display);
   font-weight: 700;
   letter-spacing: 0.14em;
   font-size: 15px;
+  line-height: 1.1;
 }
 
 .brand-name em {
   font-style: normal;
   color: var(--blue-bright);
+}
+
+.brand-ad {
+  font-size: 11px;
+  line-height: 1.1;
+  color: var(--beige);
+  text-decoration: none;
+  opacity: 0.5;
+  transition: opacity 0.15s;
+}
+
+.brand-ad em {
+  font-style: normal;
+  color: var(--blue-bright);
+  border-bottom: 1px solid rgba(6, 175, 227, 0.4);
+}
+
+.brand-ad:hover {
+  opacity: 1;
 }
 
 .topbar-right {
@@ -158,7 +185,6 @@ button:focus-visible {
 .icon-btn {
   font-size: 18px;
   padding: 6px;
-  border-radius: 10px;
   transition: background 0.15s;
 }
 
@@ -230,7 +256,6 @@ button:focus-visible {
 .effect-chip {
   display: inline-block;
   padding: 4px 12px;
-  border-radius: 999px;
   font-family: var(--font-mono);
   font-size: 12px;
   animation: chip-throb 1s ease-in-out infinite alternate;
@@ -336,17 +361,45 @@ button:focus-visible {
   }
 }
 
+.stage-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  z-index: 2;
+}
+
 .hint {
   font-size: 13px;
   opacity: 0.6;
-  z-index: 2;
+}
+
+.credit {
+  font-size: 11px;
+  opacity: 0.35;
+  transition: opacity 0.15s;
+}
+
+.credit:hover {
+  opacity: 0.65;
+}
+
+
+.credit a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(242, 241, 237, 0.35);
+}
+
+.credit a:hover {
+  color: var(--blue-bright);
+  border-bottom-color: rgba(6, 175, 227, 0.55);
 }
 
 .hint kbd {
   font-family: var(--font-mono);
   font-size: 11px;
   padding: 2px 6px;
-  border-radius: 5px;
   border: 1px solid rgba(242, 241, 237, 0.3);
   background: rgba(242, 241, 237, 0.08);
 }
@@ -398,12 +451,15 @@ button:focus-visible {
   align-items: center;
   gap: 8px;
   padding: 10px 18px;
-  border-radius: 999px;
+  max-width: calc(100% - 24px);
+  text-align: left;
   font-family: var(--font-display);
   font-weight: 500;
   font-size: 14px;
   backdrop-filter: blur(8px);
   animation: event-bob 2.2s ease-in-out infinite;
+  scale: 1; /* explicit, so the first shrink animates */
+  transition: scale 0.12s ease;
 }
 
 .event-icon {
@@ -444,7 +500,6 @@ button:focus-visible {
   font-family: var(--font-mono);
   font-size: 12px;
   padding: 2px 8px;
-  border-radius: 999px;
   background: rgba(0, 0, 0, 0.35);
 }
 
@@ -538,71 +593,119 @@ button:focus-visible {
   justify-content: space-between;
 }
 
-.buy-toggle {
+.seg-toggle {
   display: flex;
   border: 1px solid var(--panel-border);
-  border-radius: 4px;
   overflow: hidden;
   margin-bottom: 10px;
 }
 
-.buy-toggle button {
+.seg-toggle button {
   font-family: var(--font-mono);
   font-size: 11px;
   padding: 4px 10px;
   opacity: 0.6;
+  white-space: nowrap;
   transition: background 0.15s, opacity 0.15s;
 }
 
-.buy-toggle button.active {
+.seg-toggle button:hover {
+  opacity: 0.85;
+}
+
+.seg-toggle button.active {
   background: rgba(6, 175, 227, 0.22);
   color: var(--blue-bright);
   opacity: 1;
 }
 
-/* Upgrades tray */
+/* Tile grids */
 
-.upgrade-tray {
-  display: flex;
-  flex-wrap: wrap;
+.tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+  align-content: start;
   gap: 8px;
   min-height: 46px;
+  max-height: 100px; /* two rows, then scroll */
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(6, 175, 227, 0.35) transparent;
 }
 
-.upgrade-tray.empty::after {
-  content: 'Keep clicking — upgrades appear here.';
+.tile-grid.empty {
+  align-content: center;
+}
+
+.tile-grid.empty::after {
+  grid-column: 1 / -1;
   font-size: 12px;
   opacity: 0.4;
-  align-self: center;
   padding-left: 4px;
 }
 
-.upgrade-btn {
-  width: 46px;
+.store-tray.empty::after {
+  content: 'Keep clicking — upgrades appear here.';
+}
+
+.owned-tray.empty::after {
+  content: 'Nothing bought yet — upgrades you buy live here.';
+}
+
+.tile {
   height: 46px;
   font-size: 22px;
   display: grid;
   place-items: center;
-  border-radius: 4px;
   background: rgba(6, 175, 227, 0.12);
   border: 1px solid rgba(6, 175, 227, 0.4);
   transition: transform 0.12s, background 0.15s, border-color 0.15s;
 }
 
-.upgrade-btn:hover {
+.tile:not(.inert):hover {
   transform: translateY(-2px);
   background: rgba(6, 175, 227, 0.25);
 }
 
-.upgrade-btn.unaffordable {
+.tile.inert {
+  cursor: default;
+  background: rgba(6, 175, 227, 0.06);
+  border-color: rgba(6, 175, 227, 0.22);
+}
+
+.tile.inert:hover {
+  background: rgba(6, 175, 227, 0.14);
+}
+
+.tile.unaffordable {
   filter: grayscale(0.9);
   opacity: 0.45;
   border-color: var(--panel-border);
 }
 
+.tile.locked {
+  filter: grayscale(1);
+  opacity: 0.3;
+  background: rgba(242, 241, 237, 0.03);
+  border-color: var(--panel-border);
+}
+
+.tile.locked:hover {
+  opacity: 0.5;
+}
+
+.head-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--blue-bright);
+  opacity: 0.75;
+  margin-bottom: 10px;
+}
+
 /* Producer list */
 
 .producer-list {
+  --row-pitch: 60px; /* 54px row + 6px gap */
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -619,7 +722,6 @@ button:focus-visible {
   gap: 10px;
   text-align: left;
   padding: 9px 12px 9px 8px;
-  border-radius: 4px;
   background: rgba(242, 241, 237, 0.04);
   border: 1px solid transparent;
   transition: background 0.15s, border-color 0.15s, opacity 0.15s;
@@ -678,7 +780,6 @@ button:focus-visible {
   z-index: 50;
   max-width: 260px;
   padding: 12px 14px;
-  border-radius: 12px;
   background: rgba(0, 14, 26, 0.92);
   border: 1px solid rgba(6, 175, 227, 0.35);
   backdrop-filter: blur(10px);
@@ -728,7 +829,6 @@ button:focus-visible {
   gap: 12px;
   align-items: center;
   padding: 12px 16px;
-  border-radius: 14px;
   background: rgba(0, 20, 38, 0.88);
   border: 1px solid rgba(6, 175, 227, 0.4);
   backdrop-filter: blur(12px);
@@ -793,6 +893,20 @@ button:focus-visible {
     height: auto;
   }
 
+  .topbar {
+    height: auto;
+  }
+
+  /* height:auto here, so flex:1 no longer caps the list. */
+  .producer-list {
+    max-height: calc(4.5 * var(--row-pitch));
+  }
+
+  .stat {
+    align-items: center;
+    text-align: center;
+  }
+
   .stage {
     min-height: 70vh;
   }
@@ -813,8 +927,9 @@ button:focus-visible {
   }
 
   .core,
-  .upgrade-btn,
-  .toast {
+  .tile,
+  .toast,
+  .event-pickup {
     transition: none;
   }
 }

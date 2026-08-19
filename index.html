@@ -21,7 +21,12 @@
     <header class="topbar">
       <div class="brand">
         <img src="/core.svg" class="brand-mark" alt="Coretura" />
-        <span class="brand-name">CORETURA <em>CLICKER</em></span>
+        <div class="brand-text">
+          <span class="brand-name">CORETURA <em>CLICKER</em></span>
+          <a class="brand-ad" href="https://coretura.com" target="_blank" rel="noopener noreferrer">
+            Interested in the future of trucks? <em>Learn more.</em>
+          </a>
+        </div>
       </div>
       <div class="topbar-right">
         <div class="stat" title="Permanent bonus from achievements">
@@ -79,7 +84,15 @@
           </button>
         </div>
 
-        <div class="hint">Click the Core to write code — <kbd>Space</kbd> works too</div>
+        <div class="stage-foot">
+          <div class="hint">Click the Core to write code — <kbd>Space</kbd> works too</div>
+          <p class="credit">
+            Made with ♥︎ by
+            <a href="https://www.linkedin.com/in/amadeuszancotti/" target="_blank" rel="noopener noreferrer">
+              Amadeus Zancotti
+            </a>
+          </p>
+        </div>
         <div id="floaters" class="floaters" aria-hidden="true"></div>
       </section>
 
@@ -93,20 +106,39 @@
         </div>
 
         <section class="store-section">
-          <h2>Upgrades</h2>
-          <div id="upgrades" class="upgrade-tray empty"></div>
+          <div class="store-head">
+            <h2>Upgrades</h2>
+            <div class="seg-toggle" id="upgrade-tabs" role="tablist" aria-label="Upgrade views">
+              <button role="tab" data-tab="store" class="active" aria-selected="true" aria-controls="upgrades">
+                Store
+              </button>
+              <button role="tab" data-tab="active" aria-selected="false" aria-controls="owned">
+                Active <span id="owned-count">0</span>
+              </button>
+            </div>
+          </div>
+          <div id="upgrades" class="tile-grid store-tray empty" role="tabpanel" aria-label="Upgrade store"></div>
+          <div id="owned" class="tile-grid owned-tray empty hidden" role="tabpanel" aria-label="Active upgrades"></div>
         </section>
 
         <section class="store-section store-section-grow">
           <div class="store-head">
             <h2>Team &amp; Infrastructure</h2>
-            <div class="buy-toggle" id="buy-toggle">
+            <div class="seg-toggle" id="buy-toggle">
               <button data-amount="1" class="active">×1</button>
               <button data-amount="10">×10</button>
               <button data-amount="100">×100</button>
             </div>
           </div>
           <div id="producers" class="producer-list"></div>
+        </section>
+
+        <section class="store-section">
+          <div class="store-head">
+            <h2>Achievements</h2>
+            <span class="head-count"><span id="ach-count">0</span>/<span id="ach-total">0</span></span>
+          </div>
+          <div id="achievements" class="tile-grid" aria-label="Achievements"></div>
         </section>
       </aside>
     </main>

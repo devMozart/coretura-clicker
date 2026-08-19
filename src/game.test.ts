@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PRODUCER_BY_ID } from './content';
+import { ACHIEVEMENTS, PRODUCER_BY_ID } from './content';
 import {
   addEffect,
   buyProducer,
@@ -14,7 +14,6 @@ import {
   productionPayout,
   pruneEffects,
   tick,
-  updateReveals,
   visibleUpgrades,
 } from './game';
 import type { State } from './types';
@@ -255,18 +254,6 @@ describe('store gating', () => {
     buyProducer(s, 'senior', 5);
     expect(visibleUpgrades(s).map((u) => u.id)).toContain('hexagonal');
   });
-
-  it('producers reveal at 40% of base cost and stay revealed', () => {
-    const s = newState();
-    updateReveals(s);
-    expect(s.revealed.has('intern')).toBe(false);
-    s.loc = 6; // 40% of 15
-    updateReveals(s);
-    expect(s.revealed.has('intern')).toBe(true);
-    s.loc = 0;
-    updateReveals(s);
-    expect(s.revealed.has('intern')).toBe(true); // sticky
-  });
 });
 
 describe('achievements', () => {
@@ -283,6 +270,17 @@ describe('achievements', () => {
     buyProducer(s, 'junior', 3);
     buyProducer(s, 'senior', 3);
     expect(checkAchievements(s, derive(s))).toContain('startup');
+  });
+});
+
+describe('achievement content', () => {
+  it('gives every achievement an icon for the grid', () => {
+    const iconless = ACHIEVEMENTS.filter((a) => !a.icon?.trim()).map((a) => a.id);
+    expect(iconless).toEqual([]);
+  });
+
+  it('has no duplicate ids', () => {
+    expect(new Set(ACHIEVEMENTS.map((a) => a.id)).size).toBe(ACHIEVEMENTS.length);
   });
 });
 
