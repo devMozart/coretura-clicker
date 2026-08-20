@@ -12,5 +12,3 @@ npm run build    # typecheck + production build into dist/
 ```
 
 ## Todo
-Look over the sounds.
-SEO optimize & PWA app.
