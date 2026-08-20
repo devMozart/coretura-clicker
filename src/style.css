@@ -21,6 +21,8 @@
 html,
 body {
   height: 100%;
+  /* mobile browsers otherwise paint a grey box over whatever you tap */
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -37,6 +39,7 @@ button {
   background: none;
   border: none;
   cursor: pointer;
+  touch-action: manipulation; /* no double-tap zoom when tapping fast */
 }
 
 button:focus-visible,
@@ -296,6 +299,7 @@ a:focus-visible {
 
 .core {
   position: relative;
+  display: block; /* inline-block would add baseline leading and skew the circle */
   width: 100%;
   height: 100%;
   border-radius: 50%;
