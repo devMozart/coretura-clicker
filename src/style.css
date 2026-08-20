@@ -195,6 +195,91 @@ a:focus-visible {
   background: rgba(242, 241, 237, 0.08);
 }
 
+.icon-btn[aria-expanded='true'] {
+  background: rgba(6, 175, 227, 0.18);
+  color: var(--blue-bright);
+}
+
+/* --- Menu ------------------------------------------------------------------------ */
+
+.menu {
+  position: relative;
+}
+
+.menu-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 45;
+  min-width: 208px;
+  display: flex;
+  flex-direction: column;
+  background: rgba(0, 20, 38, 0.92);
+  border: 1px solid var(--panel-border);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  font-size: 13px;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.menu-item:hover {
+  background: rgba(6, 175, 227, 0.14);
+}
+
+.menu-icon {
+  font-size: 15px;
+  width: 18px;
+  text-align: center;
+}
+
+.menu-danger {
+  color: var(--pink);
+}
+
+.menu-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 11px 14px;
+  border-top: 1px solid var(--panel-border);
+}
+
+.menu-confirm-text {
+  font-size: 12.5px;
+  opacity: 0.8;
+}
+
+.menu-confirm-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.menu-btn-small {
+  flex: 1;
+  padding: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  border: 1px solid var(--panel-border);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.menu-btn-small:hover {
+  background: rgba(242, 241, 237, 0.08);
+}
+
+.menu-btn-small.menu-danger:hover {
+  background: rgba(246, 67, 112, 0.16);
+  border-color: rgba(246, 67, 112, 0.5);
+}
+
 /* --- Layout -------------------------------------------------------------------- */
 
 .layout {

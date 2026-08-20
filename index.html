@@ -43,7 +43,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Clicker" />
+    <meta name="apple-mobile-web-app-title" content="Coretura Clicker" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -101,7 +101,35 @@
           <span class="stat-label">code quality</span>
           <span id="quality" class="stat-value">+0%</span>
         </div>
-        <button id="mute" class="icon-btn" aria-label="Toggle sound">🔊</button>
+        <div class="menu">
+          <button
+            id="menu-btn"
+            class="icon-btn"
+            aria-label="Menu"
+            aria-haspopup="true"
+            aria-expanded="false"
+            aria-controls="menu-panel"
+          >
+            ☰
+          </button>
+          <div id="menu-panel" class="menu-panel hidden" role="menu">
+            <button id="menu-sound" class="menu-item" role="menuitemcheckbox" aria-checked="true">
+              <span id="menu-sound-icon" class="menu-icon">🔊</span>
+              <span id="menu-sound-label">Sound on</span>
+            </button>
+            <button id="menu-restart" class="menu-item menu-danger" role="menuitem">
+              <span class="menu-icon">↺</span>
+              <span>Restart game</span>
+            </button>
+            <div id="menu-confirm" class="menu-confirm hidden" role="none">
+              <span class="menu-confirm-text">Wipe all progress?</span>
+              <div class="menu-confirm-actions">
+                <button id="menu-cancel" class="menu-btn-small" role="menuitem">Cancel</button>
+                <button id="menu-wipe" class="menu-btn-small menu-danger" role="menuitem">Wipe</button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </header>
 

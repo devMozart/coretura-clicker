@@ -36,7 +36,11 @@ export class UI {
   private producerList = el('producers');
   private toasts = el('toasts');
   private tooltip = el('tooltip');
-  private muteBtn = el<HTMLButtonElement>('mute');
+  private menuBtn = el<HTMLButtonElement>('menu-btn');
+  private menuPanel = el('menu-panel');
+  private soundItem = el<HTMLButtonElement>('menu-sound');
+  private restartItem = el<HTMLButtonElement>('menu-restart');
+  private restartConfirm = el('menu-confirm');
   private stage = el('stage');
 
   private buyAmount = 1;
@@ -50,7 +54,7 @@ export class UI {
     this.wireCore();
     this.wireBuyToggle();
     this.wireUpgradeTabs();
-    this.wireMute();
+    this.wireMenu();
   }
 
   get stageEl(): HTMLElement {
@@ -123,17 +127,52 @@ export class UI {
     this.ownedTray.classList.toggle('hidden', store);
   }
 
-  private wireMute(): void {
-    this.renderMute();
-    this.muteBtn.addEventListener('click', () => {
+  onRestart: () => void = () => {};
+
+  private wireMenu(): void {
+    this.renderSound();
+
+    this.menuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.toggleMenu(this.menuPanel.classList.contains('hidden'));
+    });
+
+    this.soundItem.addEventListener('click', () => {
       this.state.muted = !this.state.muted;
-      setMuted(this.state.muted);
-      this.renderMute();
+      this.renderSound();
+    });
+
+    // Restarting wipes the save, so it takes a second tap to go through.
+    this.restartItem.addEventListener('click', () => this.armRestart(true));
+    el('menu-cancel').addEventListener('click', () => this.armRestart(false));
+    el('menu-wipe').addEventListener('click', () => this.onRestart());
+
+    this.menuPanel.addEventListener('click', (e) => e.stopPropagation());
+    document.addEventListener('click', () => this.toggleMenu(false));
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !this.menuPanel.classList.contains('hidden')) {
+        this.toggleMenu(false);
+        this.menuBtn.focus();
+      }
     });
   }
 
-  private renderMute(): void {
-    this.muteBtn.textContent = this.state.muted ? '🔇' : '🔊';
+  private toggleMenu(open: boolean): void {
+    this.menuPanel.classList.toggle('hidden', !open);
+    this.menuBtn.setAttribute('aria-expanded', String(open));
+    if (!open) this.armRestart(false); // never reopen with a half-armed confirm
+  }
+
+  private armRestart(armed: boolean): void {
+    this.restartItem.classList.toggle('hidden', armed);
+    this.restartConfirm.classList.toggle('hidden', !armed);
+  }
+
+  private renderSound(): void {
+    const on = !this.state.muted;
+    el('menu-sound-icon').textContent = on ? '🔊' : '🔇';
+    el('menu-sound-label').textContent = on ? 'Sound on' : 'Sound off';
+    this.soundItem.setAttribute('aria-checked', String(on));
     setMuted(this.state.muted);
   }
 

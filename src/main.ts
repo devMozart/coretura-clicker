@@ -3,11 +3,12 @@ import { ACHIEVEMENT_BY_ID, ACHIEVEMENTS, BURST_INTERVAL } from './content';
 import { checkAchievements, click, derive, newState, pruneEffects, tick } from './game';
 import { EventDirector } from './events';
 import { fmt } from './format';
-import { load, OFFLINE_CAP_SECONDS, save, wipe } from './save';
+import { applySettings, load, OFFLINE_CAP_SECONDS, save, saveSettings, wipe } from './save';
 import { UI } from './ui';
 import { sound } from './fx';
 
 const state = load() ?? newState();
+applySettings(state);
 const ui = new UI(state);
 
 // Offline progress: production continues while away, capped.
@@ -42,6 +43,7 @@ ui.onCoreClick = (x, y) => {
   ui.clickFeedback(gained, x, y);
 };
 ui.onPurchase = () => runChecks();
+ui.onRestart = () => hardReset();
 
 function runChecks(): void {
   for (const id of checkAchievements(state, derive(state))) announceAchievement(id);
@@ -87,6 +89,7 @@ window.addEventListener('beforeunload', saveOnUnload);
 
 function hardReset(): void {
   window.removeEventListener('beforeunload', saveOnUnload);
+  saveSettings(state); // progress goes, the sound choice stays
   wipe();
   location.reload();
 }
