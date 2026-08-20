@@ -146,7 +146,8 @@ export class UI {
     this.lpsEl.textContent = `${fmtRate(d.locPerSec)} LoC/s`;
     this.fundingEl.textContent = `€${fmt(s.funding)}`;
     this.qualityEl.textContent = `+${s.achievements.size}%`;
-    document.title = `${fmt(s.loc)} LoC — Coretura Clicker`;
+    // Leave the descriptive title alone until there's a score, so crawlers index that one.
+    if (s.loc > 0) document.title = `${fmt(s.loc)} LoC — Coretura Clicker`;
 
     const chips = s.effects
       .filter((e) => e.until > now)

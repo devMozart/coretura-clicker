@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Coretura Clicker — social card & icon source</title>
+    <!--
+      Source for the generated images in public/: og.jpg, icon-192.png, icon-512.png,
+      icon-512-maskable.png, apple-touch-icon.png, favicon-48.png.
+      Run `npm run dev`, open /tools/social-card.html and screenshot each block at its
+      own CSS size. Lives outside public/ so it isn't published with the build.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --blue: #008fc9;
+        --blue-bright: #06afe3;
+        --pink: #f64370;
+        --darker: #001220;
+        --beige: #f2f1ed;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        background: #000;
+        font-family: 'Inter', system-ui, sans-serif;
+        color: var(--beige);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .card {
+        position: relative;
+        overflow: hidden;
+        background: var(--darker);
+      }
+
+      /* brand gradient + the same shade/grid treatment the game stage uses */
+      .card .bg {
+        position: absolute;
+        inset: 0;
+        background-image: url('/bg1.jpg');
+        background-size: cover;
+        background-position: center;
+      }
+
+      .card .shade {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(ellipse at 38% 50%, rgba(0, 18, 32, 0.15) 0%, rgba(0, 18, 32, 0.72) 100%),
+          rgba(0, 18, 32, 0.4);
+      }
+
+      .card .grid {
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(6, 175, 227, 0.07) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(6, 175, 227, 0.07) 1px, transparent 1px);
+        mask-image: radial-gradient(ellipse at 40% 45%, black 25%, transparent 78%);
+      }
+
+      /* --- 1200x630 social card ------------------------------------------------ */
+
+      #og {
+        width: 1200px;
+        height: 630px;
+      }
+
+      #og .grid {
+        background-size: 60px 60px;
+      }
+
+      #og .inner {
+        position: relative;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        gap: 64px;
+        padding: 0 86px;
+      }
+
+      #og .core-wrap {
+        position: relative;
+        width: 288px;
+        height: 288px;
+        flex: none;
+        display: grid;
+        place-items: center;
+      }
+
+      /* the logo carries its own dark fill, so the glow has to sit behind it */
+      #og .core-wrap::before {
+        content: '';
+        position: absolute;
+        inset: -56px;
+        background: radial-gradient(
+          circle closest-side at 50% 50%,
+          rgba(6, 175, 227, 0.5) 62%,
+          rgba(0, 143, 201, 0.3) 76%,
+          rgba(0, 143, 201, 0.08) 88%,
+          transparent 100%
+        );
+      }
+
+      #og .mark {
+        position: relative;
+        width: 100%;
+        height: 100%;
+      }
+
+      #og .copy {
+        min-width: 0;
+      }
+
+      #og .wordmark {
+        font-family: 'Space Grotesk', system-ui, sans-serif;
+        font-weight: 700;
+        font-size: 76px;
+        line-height: 1.03;
+        letter-spacing: 0.02em;
+        text-shadow: 0 0 40px rgba(6, 175, 227, 0.35);
+      }
+
+      #og .wordmark em {
+        font-style: normal;
+        color: var(--blue-bright);
+      }
+
+      #og .tagline {
+        font-size: 27px;
+        line-height: 1.45;
+        opacity: 0.82;
+        margin-top: 22px;
+        max-width: 620px;
+      }
+
+      #og .facts {
+        display: flex;
+        gap: 12px;
+        margin-top: 34px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 17px;
+      }
+
+      #og .facts span {
+        padding: 8px 16px;
+        color: #bfe9f8;
+        background: rgba(6, 175, 227, 0.12);
+        border: 1px solid rgba(6, 175, 227, 0.42);
+      }
+
+      #og .url {
+        position: absolute;
+        right: 86px;
+        bottom: 44px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 17px;
+        letter-spacing: 0.04em;
+        opacity: 0.5;
+      }
+
+      /* --- square icons -------------------------------------------------------- */
+
+      .icon {
+        display: grid;
+        place-items: center;
+        position: relative;
+      }
+
+      .icon img {
+        width: 100%;
+        height: 100%;
+        display: block;
+        position: relative;
+      }
+
+      /* transparent-corner icons: the logo alone, edge to edge */
+      #icon512,
+      #icon192,
+      #favicon48 {
+        background: transparent;
+      }
+
+      #icon512 {
+        width: 512px;
+        height: 512px;
+      }
+
+      #icon192 {
+        width: 192px;
+        height: 192px;
+      }
+
+      #favicon48 {
+        width: 48px;
+        height: 48px;
+      }
+
+      /* opaque, inset variants for Android maskable + iOS home screen */
+      #maskable512,
+      #apple180 {
+        background: var(--darker);
+      }
+
+      #maskable512 {
+        width: 512px;
+        height: 512px;
+      }
+
+      /* Android's maskable safe zone is the middle 80%; keep the mark inside it */
+      #maskable512 img {
+        width: 358px;
+        height: 358px;
+      }
+
+      #apple180 {
+        width: 180px;
+        height: 180px;
+      }
+
+      #apple180 img {
+        width: 148px;
+        height: 148px;
+      }
+
+      .stack {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        align-items: flex-start;
+        padding: 24px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="stack">
+      <div class="card" id="og">
+        <div class="bg"></div>
+        <div class="shade"></div>
+        <div class="grid"></div>
+        <div class="inner">
+          <div class="core-wrap"><img class="mark" src="/core.svg" alt="" /></div>
+          <div class="copy">
+            <div class="wordmark">CORETURA <em>CLICKER</em></div>
+            <div class="tagline">
+              Click the Core to write code. Ship it into funding and scale from one intern to a
+              self-improving vehicle platform.
+            </div>
+            <div class="facts">
+              <span>17 producers</span>
+              <span>104 upgrades</span>
+              <span>22 achievements</span>
+            </div>
+          </div>
+          <div class="url">coretura-clicker.vercel.app</div>
+        </div>
+      </div>
+
+      <div class="icon" id="icon512"><img src="/core.svg" alt="" /></div>
+      <div class="icon" id="icon192"><img src="/core.svg" alt="" /></div>
+      <div class="icon" id="maskable512"><img src="/core.svg" alt="" /></div>
+      <div class="icon" id="apple180"><img src="/core.svg" alt="" /></div>
+      <div class="icon" id="favicon48"><img src="/core.svg" alt="" /></div>
+    </div>
+  </body>
+</html>

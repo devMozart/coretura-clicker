@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://coretura-clicker.vercel.app/sitemap.xml
