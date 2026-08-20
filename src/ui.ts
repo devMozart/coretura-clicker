@@ -10,6 +10,7 @@ import {
 import { bulkCost, buyProducer, buyUpgrade, derive, visibleUpgrades } from './game';
 import { fmt, fmtRate } from './format';
 import { reducedMotion, setMuted, sound, spawnCelebration, spawnFloater, spawnPulse } from './fx';
+import { cardFilename, renderCard, shareTargets } from './share';
 import type { State, UpgradeDef } from './types';
 
 function el<T extends HTMLElement>(id: string): T {
@@ -44,6 +45,12 @@ export class UI {
   private stage = el('stage');
   private updatePrompt = el('update-prompt');
   private celebration = el('celebration');
+  private shareBackdrop = el('share-backdrop');
+  private shareImage = el<HTMLImageElement>('share-image');
+  private sharePending = el('share-pending');
+  private shareStatus = el('share-status');
+  private shareCard: { blob: Blob; file: File } | null = null;
+  private shareUrl: string | null = null;
 
   private buyAmount = 1;
   private producerRows = new Map<string, HTMLButtonElement>();
@@ -57,6 +64,7 @@ export class UI {
     this.wireBuyToggle();
     this.wireUpgradeTabs();
     this.wireMenu();
+    this.wireShare();
     this.wireUpdatePrompt();
   }
 
@@ -146,6 +154,11 @@ export class UI {
     });
 
     // Restarting wipes the save, so it takes a second tap to go through.
+    el('menu-share').addEventListener('click', () => {
+      this.toggleMenu(false);
+      void this.openShare();
+    });
+
     this.restartItem.addEventListener('click', () => this.armRestart(true));
     el('menu-cancel').addEventListener('click', () => this.armRestart(false));
     el('menu-wipe').addEventListener('click', () => this.onRestart());
@@ -199,6 +212,92 @@ export class UI {
 
   private hideUpdatePrompt(): void {
     this.updatePrompt.classList.add('hidden');
+  }
+
+  private wireShare(): void {
+    el('share-close').addEventListener('click', () => this.closeShare());
+    this.shareBackdrop.addEventListener('click', (e) => {
+      if (e.target === this.shareBackdrop) this.closeShare();
+    });
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !this.shareBackdrop.classList.contains('hidden')) this.closeShare();
+    });
+
+    el('share-save').addEventListener('click', () => this.saveCard());
+    el('share-send').addEventListener('click', () => void this.sendCard());
+    el('share-copy').addEventListener('click', () => void this.copyCard());
+  }
+
+  /**
+   * The PNG is rendered as the dialog opens rather than on the Share press:
+   * navigator.share needs user activation, which an await can spend.
+   */
+  private async openShare(): Promise<void> {
+    this.showShare(true);
+    this.shareImage.removeAttribute('src');
+    this.sharePending.textContent = 'Rendering…';
+    this.sharePending.classList.remove('hidden');
+    this.shareStatus.textContent = '';
+    this.releaseCard();
+
+    const blob = await renderCard(this.state.loc);
+    if (!blob) {
+      this.sharePending.textContent = 'Could not render the card here.';
+      return;
+    }
+    const name = cardFilename(this.state.loc);
+    this.shareCard = { blob, file: new File([blob], name, { type: 'image/png' }) };
+    this.shareUrl = URL.createObjectURL(blob);
+    this.shareImage.src = this.shareUrl;
+    this.sharePending.classList.add('hidden');
+
+    const targets = shareTargets(navigator, window, this.shareCard.file);
+    el('share-send').classList.toggle('hidden', !targets.canShare);
+    el('share-copy').classList.toggle('hidden', !targets.canCopy);
+  }
+
+  private showShare(open: boolean): void {
+    this.shareBackdrop.classList.toggle('hidden', !open);
+  }
+
+  private closeShare(): void {
+    this.showShare(false);
+    this.releaseCard();
+    this.menuBtn.focus();
+  }
+
+  private releaseCard(): void {
+    if (this.shareUrl) URL.revokeObjectURL(this.shareUrl);
+    this.shareUrl = null;
+    this.shareCard = null;
+  }
+
+  private saveCard(): void {
+    if (!this.shareCard) return;
+    const a = document.createElement('a');
+    a.href = this.shareUrl!;
+    a.download = this.shareCard.file.name;
+    a.click();
+    this.shareStatus.textContent = 'Saved.';
+  }
+
+  private async sendCard(): Promise<void> {
+    if (!this.shareCard) return;
+    try {
+      await navigator.share({ files: [this.shareCard.file], title: 'Coretura Clicker' });
+    } catch {
+      // dismissing the share sheet rejects, which is not an error worth showing
+    }
+  }
+
+  private async copyCard(): Promise<void> {
+    if (!this.shareCard) return;
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': this.shareCard.blob })]);
+      this.shareStatus.textContent = 'Copied to the clipboard.';
+    } catch {
+      this.shareStatus.textContent = 'Copying failed — use Save instead.';
+    }
   }
 
   private renderSound(): void {

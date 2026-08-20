@@ -116,6 +116,10 @@
               <span id="menu-sound-icon" class="menu-icon">🔊</span>
               <span id="menu-sound-label">Sound on</span>
             </button>
+            <button id="menu-share" class="menu-item" role="menuitem">
+              <span class="menu-icon">↗︎</span>
+              <span>Share your run</span>
+            </button>
             <button id="menu-restart" class="menu-item menu-danger" role="menuitem">
               <span class="menu-icon">↺</span>
               <span>Restart game</span>
@@ -256,6 +260,29 @@
     <div id="tooltip" class="tooltip hidden" aria-hidden="true"></div>
     <!-- Milestone moments. aria-hidden because the achievement toast already announces them. -->
     <div id="celebration" class="celebration" aria-hidden="true"></div>
+
+    <div id="share-backdrop" class="share-backdrop hidden">
+      <div
+        id="share-dialog"
+        class="share-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="share-title"
+      >
+        <h2 id="share-title" class="share-title">Share your run</h2>
+        <div class="share-preview">
+          <img id="share-image" alt="Your run card: total lines of code written" />
+          <p id="share-pending" class="share-pending">Rendering…</p>
+        </div>
+        <p id="share-status" class="share-status" role="status" aria-live="polite"></p>
+        <div class="share-actions">
+          <button id="share-send" class="menu-btn-small hidden">Share</button>
+          <button id="share-copy" class="menu-btn-small hidden">Copy</button>
+          <button id="share-save" class="menu-btn-small">Save</button>
+          <button id="share-close" class="menu-btn-small">Close</button>
+        </div>
+      </div>
+    </div>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

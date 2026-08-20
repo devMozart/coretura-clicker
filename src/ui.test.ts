@@ -143,6 +143,67 @@ describe('restart confirm', () => {
   });
 });
 
+describe('share dialog', () => {
+  /** happy-dom has no canvas, so renderCard bails and we get the fallback. */
+  const openShare = async () => {
+    click(el('menu-btn'));
+    click(el('menu-share'));
+    await vi.waitFor(() => {
+      if (el('share-pending').textContent === 'Rendering…') throw new Error('still rendering');
+    });
+  };
+
+  it('starts closed', () => {
+    setup();
+    expect(el('share-backdrop').classList.contains('hidden')).toBe(true);
+  });
+
+  it('opens from the menu, and closes the menu behind it', async () => {
+    setup();
+    await openShare();
+    expect(el('share-backdrop').classList.contains('hidden')).toBe(false);
+    expect(el('menu-panel').classList.contains('hidden')).toBe(true);
+  });
+
+  it('says so rather than hanging when the card cannot be drawn', async () => {
+    setup();
+    await openShare();
+    expect(el('share-pending').textContent).toContain('Could not render');
+    expect(el('share-pending').classList.contains('hidden')).toBe(false);
+  });
+
+  it('offers neither Share nor Copy when the browser supports neither', async () => {
+    setup();
+    await openShare();
+    expect(el('share-send').classList.contains('hidden')).toBe(true);
+    expect(el('share-copy').classList.contains('hidden')).toBe(true);
+  });
+
+  it('closes on the Close button and hands focus back to the menu', async () => {
+    setup();
+    await openShare();
+    click(el('share-close'));
+    expect(el('share-backdrop').classList.contains('hidden')).toBe(true);
+    expect(document.activeElement?.id).toBe('menu-btn');
+  });
+
+  it('closes on Escape', async () => {
+    setup();
+    await openShare();
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    expect(el('share-backdrop').classList.contains('hidden')).toBe(true);
+  });
+
+  it('closes when the backdrop is clicked but not the dialog itself', async () => {
+    setup();
+    await openShare();
+    click(el('share-dialog'));
+    expect(el('share-backdrop').classList.contains('hidden')).toBe(false);
+    click(el('share-backdrop'));
+    expect(el('share-backdrop').classList.contains('hidden')).toBe(true);
+  });
+});
+
 describe('the Core', () => {
   it('reports a click', () => {
     const { ui } = setup();
