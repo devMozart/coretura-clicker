@@ -24,7 +24,11 @@ export function pickupScale(clicks: number): number {
 }
 
 /** Desired 0–1 spot in stage pixels, clamped so the whole pickup stays on stage. */
-export function pickupSpot(stage: Box, pickup: Box, frac: { x: number; y: number }): { x: number; y: number } {
+export function pickupSpot(
+  stage: Box,
+  pickup: Box,
+  frac: { x: number; y: number },
+): { x: number; y: number } {
   const maxX = Math.max(PICKUP_MARGIN, stage.width - pickup.width - PICKUP_MARGIN);
   const maxY = Math.max(PICKUP_MARGIN, stage.height - pickup.height - PICKUP_MARGIN);
   return {
@@ -69,6 +73,8 @@ const lucky = (ctx: EventCtx) => {
   if (grantAchievement(ctx.state, 'shipit')) ctx.cb.achievementEarned('shipit');
 };
 
+// Each event's metadata stays on one line so onResolve is what you read.
+// prettier-ignore
 export const EVENT_TYPES: EventDef[] = [
   {
     id: 'pr_approved', label: 'PR Approved', icon: '🚀', cls: 'good', weight: 20, linger: 13_000,

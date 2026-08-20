@@ -4,8 +4,12 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig({
   plugins: [
     VitePWA({
-      registerType: 'autoUpdate',
-      includeAssets: ['core.svg', 'favicon-48.png', 'apple-touch-icon.png', 'bg1.jpg', 'bg2.jpg'],
+      // 'prompt' leaves the new worker waiting; main.ts asks before swapping it in.
+      registerType: 'prompt',
+      // main.ts imports virtual:pwa-register itself, so the auto-injected
+      // registerSW.js script would register a second time.
+      injectRegister: null,
+      includeAssets: ['core.svg', 'favicon-48.png', 'apple-touch-icon.png'],
       manifest: {
         name: 'Coretura Clicker',
         short_name: 'Clicker',
@@ -28,24 +32,10 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,jpg,webmanifest}'],
-        runtimeCaching: [
-          {
-            // the three families are loaded from Google Fonts, so keep them for offline play
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\//,
-            handler: 'StaleWhileRevalidate',
-            options: { cacheName: 'google-fonts-css' },
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.gstatic\.com\//,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'google-fonts-files',
-              expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-        ],
+        // jpg is deliberately absent: the only JPEGs are the two background
+        // fallbacks (AVIF is precached instead) and og.jpg, which exists for
+        // social crawlers and is never fetched by the app.
+        globPatterns: ['**/*.{js,css,html,svg,png,webmanifest,woff2,avif}'],
       },
     }),
   ],

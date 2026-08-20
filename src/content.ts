@@ -1,10 +1,14 @@
 import type { AchievementDef, ProducerDef, State, UpgradeDef } from './types';
 
+// The data tables below are hand-aligned into columns, which is the only way the
+// balance numbers read as a table — so each one is marked `// prettier-ignore`.
+
 // ---------------------------------------------------------------------------
 // Producers — people ladder first, then infrastructure. Balancing = editing
 // these numbers. See ProducerSpecial for what the `special` flags do.
 // ---------------------------------------------------------------------------
 
+// prettier-ignore
 export const PRODUCERS: ProducerDef[] = [
   { id: 'intern',     name: 'Intern',                   icon: '🧑‍💻', baseCost: 15,      baseCps: 0.1,    kind: 'people', flavor: 'Writes code. Occasionally correct code.' },
   { id: 'junior',     name: 'Junior Developer',         icon: '🧑‍🎓', baseCost: 100,     baseCps: 1,      kind: 'people', flavor: 'Ships features and the occasional footgun.' },
@@ -36,10 +40,10 @@ export const BURST_INTERVAL = 10;
 // Upgrades
 // ---------------------------------------------------------------------------
 
-const totalProducers = (s: State) =>
-  Object.values(s.owned).reduce((a, b) => a + b, 0);
+const totalProducers = (s: State) => Object.values(s.owned).reduce((a, b) => a + b, 0);
 const own = (s: State, id: string) => s.owned[id] ?? 0;
 
+// prettier-ignore
 const NAMED_UPGRADES: UpgradeDef[] = [
   // -- The click: doublers ---------------------------------------------------
   { id: 'keyboard', name: 'Mechanical keyboard',      icon: '⌨️', cost: 100,    effect: { type: 'click', mult: 2 }, unlocked: (s) => s.clicks >= 10,   flavor: 'Louder, and 2× as productive.' },
@@ -79,6 +83,7 @@ const NAMED_UPGRADES: UpgradeDef[] = [
 ];
 
 // Milestone tiers per producer: a doubler at each owned-count threshold.
+// prettier-ignore
 const TIERS = [
   { at: 1,   costMult: 12,    prefix: 'Better' },
   { at: 10,  costMult: 120,   prefix: 'Elite' },
@@ -115,9 +120,7 @@ export const UPGRADES: UpgradeDef[] = [...NAMED_UPGRADES, ...GENERATED_UPGRADES]
   (a, b) => a.cost - b.cost,
 );
 
-export const UPGRADE_BY_ID: Record<string, UpgradeDef> = Object.fromEntries(
-  UPGRADES.map((u) => [u.id, u]),
-);
+export const UPGRADE_BY_ID: Record<string, UpgradeDef> = Object.fromEntries(UPGRADES.map((u) => [u.id, u]));
 
 // ---------------------------------------------------------------------------
 // Achievements — each grants a permanent +1% global ("code quality").
@@ -127,6 +130,7 @@ export const UPGRADE_BY_ID: Record<string, UpgradeDef> = Object.fromEntries(
 const peopleCount = (s: State) =>
   PRODUCERS.filter((p) => p.kind === 'people').reduce((sum, p) => sum + own(s, p.id), 0);
 
+// prettier-ignore
 export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'hello',       name: 'Hello, world',            icon: '👋', desc: 'Write your first line of code.',       check: (s) => s.loc >= 1 },
   { id: 'kilo',        name: 'Kilo-coder',              icon: '📜', desc: 'Write 1,000 lines of code.',           check: (s) => s.loc >= 1e3 },
@@ -155,3 +159,14 @@ export const ACHIEVEMENTS: AchievementDef[] = [
 export const ACHIEVEMENT_BY_ID: Record<string, AchievementDef> = Object.fromEntries(
   ACHIEVEMENTS.map((a) => [a.id, a]),
 );
+
+/**
+ * Achievements worth stopping the screen for, and the headline to shout.
+ * Keyed by achievement id so the once-only, already-persisted achievement set
+ * decides when these fire — no extra state, and no repeat on reload.
+ */
+export const MILESTONES: Record<string, string> = {
+  merge: '1 MILLION LINES',
+  billion: '1 BILLION LINES',
+  trillion: '1 TRILLION LINES',
+};

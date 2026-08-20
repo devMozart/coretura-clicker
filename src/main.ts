@@ -1,18 +1,37 @@
 import './style.css';
-import { ACHIEVEMENT_BY_ID, ACHIEVEMENTS, BURST_INTERVAL } from './content';
-import { checkAchievements, click, derive, newState, pruneEffects, tick } from './game';
+import { ACHIEVEMENT_BY_ID, ACHIEVEMENTS, BURST_INTERVAL, MILESTONES } from './content';
+import { checkAchievements, click, derive, pruneEffects, tick } from './game';
 import { EventDirector } from './events';
 import { fmt } from './format';
 import { applySettings, load, OFFLINE_CAP_SECONDS, save, saveSettings, wipe } from './save';
 import { UI } from './ui';
 import { sound } from './fx';
+import { registerSW } from 'virtual:pwa-register';
 
-const state = load() ?? newState();
+const loaded = load();
+const state = loaded.state;
 applySettings(state);
 const ui = new UI(state);
 
-// Offline progress: production continues while away, capped.
-{
+if (loaded.kind === 'broken') {
+  ui.toast(
+    '⚠️',
+    'Save could not be read',
+    'Starting fresh — the old data was set aside, not deleted.',
+    'toast-bad',
+  );
+} else if (loaded.kind === 'future') {
+  ui.toast(
+    '⏳',
+    'Save is newer than this version',
+    'Your progress is safe and untouched. Reload once the update lands.',
+    'toast-bad',
+  );
+}
+
+// Offline progress: production continues while away, capped. Only a save that
+// actually loaded has elapsed time worth paying out.
+if (loaded.kind === 'loaded') {
   const away = (Date.now() - state.lastSaved) / 1000;
   if (away > 10) {
     const d = derive(state);
@@ -29,7 +48,13 @@ const announceAchievement = (id: string) => {
   const a = ACHIEVEMENT_BY_ID[id];
   if (!a) return;
   ui.toast('🏆', a.name, `${a.desc} (+1% code quality)`);
-  sound.achievement();
+  const milestone = MILESTONES[id];
+  if (milestone) {
+    ui.celebrate(milestone, a.name);
+    sound.milestone();
+  } else {
+    sound.achievement();
+  }
 };
 
 const events = new EventDirector(state, ui.stageEl, {
@@ -44,6 +69,16 @@ ui.onCoreClick = (x, y) => {
 };
 ui.onPurchase = () => runChecks();
 ui.onRestart = () => hardReset();
+
+// A waiting service worker is offered, never forced: swapping assets mid-run is
+// what this replaces. Accepting saves first, so an update cannot cost progress.
+const updateSW = registerSW({
+  onNeedRefresh: () => ui.showUpdatePrompt(),
+});
+ui.onUpdateAccept = () => {
+  save(state);
+  void updateSW(true);
+};
 
 function runChecks(): void {
   for (const id of checkAchievements(state, derive(state))) announceAchievement(id);

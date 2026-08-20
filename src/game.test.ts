@@ -211,7 +211,15 @@ describe('timed effects', () => {
     const s = rich();
     buyProducer(s, 'junior', 1);
     buyProducer(s, 'cicd', 1);
-    addEffect(s, { id: 'flaky', name: 'Flaky', icon: '🎲', kind: 'producer', producerId: 'cicd', mult: 0, until: now + 10_000 });
+    addEffect(s, {
+      id: 'flaky',
+      name: 'Flaky',
+      icon: '🎲',
+      kind: 'producer',
+      producerId: 'cicd',
+      mult: 0,
+      until: now + 10_000,
+    });
     expect(derive(s, now).locPerSec).toBeCloseTo(1);
   });
 

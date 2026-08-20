@@ -1,0 +1,9 @@
+dist
+dev-dist
+node_modules
+package-lock.json
+
+# Hand-formatted: index.html carries a hand-tuned inline SVG, and the docs
+# read better with their own line breaks than with reflowed ones.
+*.html
+*.md

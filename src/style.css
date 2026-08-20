@@ -1,3 +1,38 @@
+/* --- Fonts: self-hosted latin subsets, variable so one file covers every weight --- */
+
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 500 700;
+  font-display: swap;
+  src: url('/fonts/space-grotesk-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/inter-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500 700;
+  font-display: swap;
+  src: url('/fonts/jetbrains-mono-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 :root {
   --blue: #008fc9;
   --blue-bright: #06afe3;
@@ -59,11 +94,19 @@ a:focus-visible {
 }
 
 .bg-a {
-  background-image: url('/bg1.jpg');
+  background-image: url('./assets/bg1.jpg');
+  background-image: image-set(
+    url('./assets/bg1.avif') type('image/avif'),
+    url('./assets/bg1.jpg') type('image/jpeg')
+  );
 }
 
 .bg-b {
-  background-image: url('/bg2.jpg');
+  background-image: url('./assets/bg2.jpg');
+  background-image: image-set(
+    url('./assets/bg2.avif') type('image/avif'),
+    url('./assets/bg2.jpg') type('image/jpeg')
+  );
   opacity: 0;
   animation: bg-crossfade 60s ease-in-out infinite;
 }
@@ -268,7 +311,9 @@ a:focus-visible {
   font-family: var(--font-mono);
   font-size: 11.5px;
   border: 1px solid var(--panel-border);
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 
 .menu-btn-small:hover {
@@ -390,7 +435,9 @@ a:focus-visible {
   border-radius: 50%;
   z-index: 2;
   filter: drop-shadow(0 0 28px rgba(6, 175, 227, 0.55)) drop-shadow(0 0 80px rgba(0, 143, 201, 0.3));
-  transition: transform 0.12s ease, filter 0.3s ease;
+  transition:
+    transform 0.12s ease,
+    filter 0.3s ease;
   animation: core-breathe 4.5s ease-in-out infinite;
 }
 
@@ -472,7 +519,6 @@ a:focus-visible {
 .credit:hover {
   opacity: 0.65;
 }
-
 
 .credit a {
   color: inherit;
@@ -695,7 +741,9 @@ a:focus-visible {
   padding: 4px 10px;
   opacity: 0.6;
   white-space: nowrap;
-  transition: background 0.15s, opacity 0.15s;
+  transition:
+    background 0.15s,
+    opacity 0.15s;
 }
 
 .seg-toggle button:hover {
@@ -748,7 +796,10 @@ a:focus-visible {
   place-items: center;
   background: rgba(6, 175, 227, 0.12);
   border: 1px solid rgba(6, 175, 227, 0.4);
-  transition: transform 0.12s, background 0.15s, border-color 0.15s;
+  transition:
+    transform 0.12s,
+    background 0.15s,
+    border-color 0.15s;
 }
 
 .tile:not(.inert):hover {
@@ -813,7 +864,10 @@ a:focus-visible {
   padding: 9px 12px 9px 8px;
   background: rgba(242, 241, 237, 0.04);
   border: 1px solid transparent;
-  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    opacity 0.15s;
 }
 
 .producer-row:hover {
@@ -902,7 +956,7 @@ a:focus-visible {
 
 /* --- Toasts ---------------------------------------------------------------------------------------- */
 
-.toasts {
+.corner-stack {
   position: fixed;
   left: 22px;
   bottom: 22px;
@@ -911,6 +965,72 @@ a:focus-visible {
   flex-direction: column;
   gap: 10px;
   max-width: 340px;
+}
+
+.toasts {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* --- Update prompt: sits above the toasts and waits for an answer ------------- */
+
+.update-prompt {
+  display: flex;
+  flex-wrap: wrap; /* the actions row relies on this to break onto its own line */
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border: 1px solid rgba(6, 175, 227, 0.45);
+  border-radius: 10px;
+  background: rgba(0, 18, 32, 0.92);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+}
+
+.update-icon {
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.update-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.update-text strong {
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+
+.update-text span {
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.update-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-basis: 100%;
+  justify-content: flex-end;
+}
+
+.update-prompt .menu-btn-small {
+  flex: 0 0 auto;
+  border-radius: 6px;
+}
+
+.update-primary {
+  border-color: rgba(6, 175, 227, 0.6);
+  background: rgba(6, 175, 227, 0.16);
+}
+
+.update-primary:hover {
+  background: rgba(6, 175, 227, 0.28);
 }
 
 .toast {
@@ -923,7 +1043,9 @@ a:focus-visible {
   backdrop-filter: blur(12px);
   box-shadow: 0 6px 26px rgba(0, 0, 0, 0.45);
   animation: toast-in 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.2);
-  transition: opacity 0.5s, translate 0.5s;
+  transition:
+    opacity 0.5s,
+    translate 0.5s;
 }
 
 .toast.leaving {
@@ -1002,6 +1124,93 @@ a:focus-visible {
 
   .core-wrap {
     width: min(56vw, 280px);
+  }
+}
+
+/* --- Milestone moments: confetti + a centred headline ------------------------- */
+
+.celebration {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.confetti {
+  position: absolute;
+  top: -5vh;
+  border-radius: 1px;
+  animation-name: confetti-fall;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+    opacity: 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--dx), 110vh, 0) rotate(var(--spin));
+    opacity: 1;
+  }
+}
+
+.milestone {
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  white-space: nowrap;
+  animation: milestone-pop 3.2s ease-out forwards;
+}
+
+.milestone strong {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 7vw, 72px);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--beige);
+  text-shadow:
+    0 0 18px rgba(6, 175, 227, 0.75),
+    0 0 46px rgba(246, 67, 112, 0.5);
+}
+
+.milestone span {
+  font-family: var(--font-mono);
+  font-size: clamp(11px, 1.6vw, 15px);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--blue-bright);
+}
+
+@keyframes milestone-pop {
+  0% {
+    transform: translate(-50%, -50%) scale(0.7);
+    opacity: 0;
+  }
+  12% {
+    transform: translate(-50%, -50%) scale(1.06);
+    opacity: 1;
+  }
+  22% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  78% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
   }
 }
 

@@ -9,7 +9,7 @@ import {
 } from './content';
 import { bulkCost, buyProducer, buyUpgrade, derive, visibleUpgrades } from './game';
 import { fmt, fmtRate } from './format';
-import { reducedMotion, setMuted, sound, spawnFloater, spawnPulse } from './fx';
+import { reducedMotion, setMuted, sound, spawnCelebration, spawnFloater, spawnPulse } from './fx';
 import type { State, UpgradeDef } from './types';
 
 function el<T extends HTMLElement>(id: string): T {
@@ -42,6 +42,8 @@ export class UI {
   private restartItem = el<HTMLButtonElement>('menu-restart');
   private restartConfirm = el('menu-confirm');
   private stage = el('stage');
+  private updatePrompt = el('update-prompt');
+  private celebration = el('celebration');
 
   private buyAmount = 1;
   private producerRows = new Map<string, HTMLButtonElement>();
@@ -55,6 +57,7 @@ export class UI {
     this.wireBuyToggle();
     this.wireUpgradeTabs();
     this.wireMenu();
+    this.wireUpdatePrompt();
   }
 
   get stageEl(): HTMLElement {
@@ -166,6 +169,36 @@ export class UI {
   private armRestart(armed: boolean): void {
     this.restartItem.classList.toggle('hidden', armed);
     this.restartConfirm.classList.toggle('hidden', !armed);
+  }
+
+  // --- Update prompt --------------------------------------------------------
+
+  /** Fired when the player accepts the waiting service worker. */
+  onUpdateAccept: () => void = () => {};
+
+  private updateAccepted = false;
+
+  private wireUpdatePrompt(): void {
+    el('update-now').addEventListener('click', () => {
+      if (this.updateAccepted) return; // reloading takes a moment; only go once
+      this.updateAccepted = true;
+      const now = el<HTMLButtonElement>('update-now');
+      const later = el<HTMLButtonElement>('update-later');
+      now.disabled = true;
+      later.disabled = true;
+      now.textContent = 'Updating…'; // the prompt stays up until the reload lands
+      this.onUpdateAccept();
+    });
+    el('update-later').addEventListener('click', () => this.hideUpdatePrompt());
+  }
+
+  /** A new version is waiting — ask rather than swapping it in underneath them. */
+  showUpdatePrompt(): void {
+    this.updatePrompt.classList.remove('hidden');
+  }
+
+  private hideUpdatePrompt(): void {
+    this.updatePrompt.classList.add('hidden');
   }
 
   private renderSound(): void {
@@ -377,7 +410,10 @@ export class UI {
       const r = target.getBoundingClientRect();
       const t = this.tooltip.getBoundingClientRect();
       const left = Math.max(8, r.left - t.width - 12);
-      const top = Math.min(Math.max(8, r.top + r.height / 2 - t.height / 2), window.innerHeight - t.height - 8);
+      const top = Math.min(
+        Math.max(8, r.top + r.height / 2 - t.height / 2),
+        window.innerHeight - t.height - 8,
+      );
       this.tooltip.style.left = `${left}px`;
       this.tooltip.style.top = `${top}px`;
     });
@@ -386,6 +422,13 @@ export class UI {
 
   private hideTooltip(): void {
     this.tooltip.classList.add('hidden');
+  }
+
+  // --- Milestones -----------------------------------------------------------------
+
+  /** A screen-wide moment for the thresholds that deserve one. */
+  celebrate(headline: string, sub: string): void {
+    spawnCelebration(this.celebration, headline, sub);
   }
 
   // --- Toasts ---------------------------------------------------------------------
