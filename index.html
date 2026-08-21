@@ -242,21 +242,7 @@
       </aside>
     </main>
 
-    <!-- One bottom-left column, so the update prompt and the toasts never overlap. -->
-    <div class="corner-stack">
-      <div id="update-prompt" class="update-prompt hidden" role="status" aria-live="polite">
-        <span class="update-icon" aria-hidden="true">✨</span>
-        <span class="update-text">
-          <strong>New version available</strong>
-          <span>Your progress is saved before reloading.</span>
-        </span>
-        <span class="update-actions">
-          <button id="update-later" class="menu-btn-small">Later</button>
-          <button id="update-now" class="menu-btn-small update-primary">Reload now</button>
-        </span>
-      </div>
-      <div id="toasts" class="toasts" role="status" aria-live="polite"></div>
-    </div>
+    <div id="toasts" class="toasts" role="status" aria-live="polite"></div>
     <div id="tooltip" class="tooltip hidden" aria-hidden="true"></div>
     <!-- Milestone moments. aria-hidden because the achievement toast already announces them. -->
     <div id="celebration" class="celebration" aria-hidden="true"></div>

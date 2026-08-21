@@ -4,11 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig({
   plugins: [
     VitePWA({
-      // 'prompt' leaves the new worker waiting; main.ts asks before swapping it in.
-      registerType: 'prompt',
-      // main.ts imports virtual:pwa-register itself, so the auto-injected
-      // registerSW.js script would register a second time.
-      injectRegister: null,
+      registerType: 'autoUpdate',
       includeAssets: ['core.svg', 'favicon-48.png', 'apple-touch-icon.png'],
       manifest: {
         name: 'Coretura Clicker',

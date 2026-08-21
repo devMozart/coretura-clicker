@@ -43,7 +43,6 @@ export class UI {
   private restartItem = el<HTMLButtonElement>('menu-restart');
   private restartConfirm = el('menu-confirm');
   private stage = el('stage');
-  private updatePrompt = el('update-prompt');
   private celebration = el('celebration');
   private shareBackdrop = el('share-backdrop');
   private shareImage = el<HTMLImageElement>('share-image');
@@ -65,7 +64,6 @@ export class UI {
     this.wireUpgradeTabs();
     this.wireMenu();
     this.wireShare();
-    this.wireUpdatePrompt();
   }
 
   get stageEl(): HTMLElement {
@@ -182,36 +180,6 @@ export class UI {
   private armRestart(armed: boolean): void {
     this.restartItem.classList.toggle('hidden', armed);
     this.restartConfirm.classList.toggle('hidden', !armed);
-  }
-
-  // --- Update prompt --------------------------------------------------------
-
-  /** Fired when the player accepts the waiting service worker. */
-  onUpdateAccept: () => void = () => {};
-
-  private updateAccepted = false;
-
-  private wireUpdatePrompt(): void {
-    el('update-now').addEventListener('click', () => {
-      if (this.updateAccepted) return; // reloading takes a moment; only go once
-      this.updateAccepted = true;
-      const now = el<HTMLButtonElement>('update-now');
-      const later = el<HTMLButtonElement>('update-later');
-      now.disabled = true;
-      later.disabled = true;
-      now.textContent = 'Updating…'; // the prompt stays up until the reload lands
-      this.onUpdateAccept();
-    });
-    el('update-later').addEventListener('click', () => this.hideUpdatePrompt());
-  }
-
-  /** A new version is waiting — ask rather than swapping it in underneath them. */
-  showUpdatePrompt(): void {
-    this.updatePrompt.classList.remove('hidden');
-  }
-
-  private hideUpdatePrompt(): void {
-    this.updatePrompt.classList.add('hidden');
   }
 
   private wireShare(): void {

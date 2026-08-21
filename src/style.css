@@ -1023,7 +1023,7 @@ a:focus-visible {
 
 /* --- Toasts ---------------------------------------------------------------------------------------- */
 
-.corner-stack {
+.toasts {
   position: fixed;
   left: 22px;
   bottom: 22px;
@@ -1032,72 +1032,6 @@ a:focus-visible {
   flex-direction: column;
   gap: 10px;
   max-width: 340px;
-}
-
-.toasts {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-/* --- Update prompt: sits above the toasts and waits for an answer ------------- */
-
-.update-prompt {
-  display: flex;
-  flex-wrap: wrap; /* the actions row relies on this to break onto its own line */
-  gap: 12px;
-  align-items: flex-start;
-  padding: 12px 14px;
-  border: 1px solid rgba(6, 175, 227, 0.45);
-  border-radius: 10px;
-  background: rgba(0, 18, 32, 0.92);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(6px);
-}
-
-.update-icon {
-  font-size: 18px;
-  line-height: 1.2;
-}
-
-.update-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-}
-
-.update-text strong {
-  font-family: var(--font-display);
-  font-size: 13px;
-  letter-spacing: 0.02em;
-}
-
-.update-text span {
-  font-size: 12px;
-  opacity: 0.75;
-}
-
-.update-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-  flex-basis: 100%;
-  justify-content: flex-end;
-}
-
-.update-prompt .menu-btn-small {
-  flex: 0 0 auto;
-  border-radius: 6px;
-}
-
-.update-primary {
-  border-color: rgba(6, 175, 227, 0.6);
-  background: rgba(6, 175, 227, 0.16);
-}
-
-.update-primary:hover {
-  background: rgba(6, 175, 227, 0.28);
 }
 
 .toast {

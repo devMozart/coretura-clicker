@@ -4,24 +4,8 @@
 // never starts, which means the HUD is never painted — assertions read state via
 // the DEV-only `__game` handle instead.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Mock } from 'vitest';
 import { mountPage } from './test-dom';
 
-// The real registerSW never fires onNeedRefresh in tests, so stand in for the
-// service worker and keep hold of the hooks main.ts hands it.
-const { swHooks, updateSW } = vi.hoisted<{
-  swHooks: { onNeedRefresh?: () => void };
-  updateSW: Mock;
-}>(() => ({
-  swHooks: {},
-  updateSW: vi.fn(),
-}));
-vi.mock('virtual:pwa-register', () => ({
-  registerSW: (opts: { onNeedRefresh?: () => void }) => {
-    swHooks.onNeedRefresh = opts.onNeedRefresh;
-    return updateSW;
-  },
-}));
 import type { State } from './types';
 
 // happy-dom supplies no localStorage here (it defers to Node's experimental one,
@@ -55,7 +39,6 @@ const toasts = () => [...document.querySelectorAll('.toast-text strong')].map((n
 beforeEach(() => {
   localStorage.clear();
   document.body.innerHTML = '';
-  updateSW.mockClear();
 });
 
 describe('main.ts boot', () => {
@@ -111,45 +94,6 @@ describe('main.ts boot', () => {
     localStorage.setItem(SAVE_KEY, JSON.stringify({ v: 99, state: { loc: 5e9 } }));
     await boot();
     expect(toasts()).not.toContain('While you were away…');
-  });
-});
-
-describe('service worker updates', () => {
-  it('asks instead of swapping assets underneath the player', async () => {
-    await boot();
-    expect(document.getElementById('update-prompt')!.classList.contains('hidden')).toBe(true);
-
-    swHooks.onNeedRefresh!(); // a new worker is waiting
-    expect(document.getElementById('update-prompt')!.classList.contains('hidden')).toBe(false);
-    expect(updateSW).not.toHaveBeenCalled(); // nothing happens until they agree
-  });
-
-  it('saves progress before reloading, so an update cannot cost a run', async () => {
-    await boot();
-    const state = gameState();
-    state.loc = 4242;
-    state.owned.intern = 3;
-
-    swHooks.onNeedRefresh!();
-    document.getElementById('update-now')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-
-    expect(updateSW).toHaveBeenCalledWith(true);
-    const saved = JSON.parse(localStorage.getItem('coretura-clicker-save')!) as {
-      state: { loc: number; owned: Record<string, number> };
-    };
-    expect(saved.state.loc).toBe(4242);
-    expect(saved.state.owned).toEqual({ intern: 3 });
-  });
-
-  it('leaves the save alone when the player picks Later', async () => {
-    await boot();
-    gameState().loc = 999;
-
-    swHooks.onNeedRefresh!();
-    document.getElementById('update-later')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-
-    expect(updateSW).not.toHaveBeenCalled();
-    expect(localStorage.getItem('coretura-clicker-save')).toBeNull();
   });
 });
 

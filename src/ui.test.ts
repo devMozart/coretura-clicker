@@ -566,66 +566,6 @@ describe('toasts', () => {
   });
 });
 
-describe('update prompt', () => {
-  it('stays out of the way until a new version is waiting', () => {
-    setup();
-    expect(el('update-prompt').classList.contains('hidden')).toBe(true);
-  });
-
-  it('appears when asked', () => {
-    const { ui } = setup();
-    ui.showUpdatePrompt();
-    expect(el('update-prompt').classList.contains('hidden')).toBe(false);
-    expect(el('update-prompt').textContent).toContain('New version available');
-  });
-
-  it('accepts, and shows that it is working', () => {
-    const { ui } = setup();
-    const onUpdateAccept = vi.fn();
-    ui.onUpdateAccept = onUpdateAccept;
-    ui.showUpdatePrompt();
-
-    click(el('update-now'));
-    expect(onUpdateAccept).toHaveBeenCalledOnce();
-    // it stays up until the reload replaces the page, so there is visible progress
-    expect(el('update-prompt').classList.contains('hidden')).toBe(false);
-    expect(el('update-now').textContent).toBe('Updating…');
-    expect(el<HTMLButtonElement>('update-now').disabled).toBe(true);
-    expect(el<HTMLButtonElement>('update-later').disabled).toBe(true);
-  });
-
-  it('only ever accepts once, however many times it is tapped', () => {
-    const { ui } = setup();
-    const onUpdateAccept = vi.fn();
-    ui.onUpdateAccept = onUpdateAccept;
-    ui.showUpdatePrompt();
-
-    click(el('update-now'));
-    click(el('update-now'));
-    click(el('update-now'));
-    expect(onUpdateAccept).toHaveBeenCalledOnce();
-  });
-
-  it('dismisses without updating when the player picks Later', () => {
-    const { ui } = setup();
-    const onUpdateAccept = vi.fn();
-    ui.onUpdateAccept = onUpdateAccept;
-    ui.showUpdatePrompt();
-
-    click(el('update-later'));
-    expect(el('update-prompt').classList.contains('hidden')).toBe(true);
-    expect(onUpdateAccept).not.toHaveBeenCalled();
-  });
-
-  it('shares the bottom-left stack with the toasts, so they cannot overlap', () => {
-    const { ui } = setup();
-    ui.toast('🏆', 'Hello', 'body');
-    const stack = q('.corner-stack');
-    expect(stack.contains(el('update-prompt'))).toBe(true);
-    expect(stack.contains(el('toasts'))).toBe(true);
-  });
-});
-
 describe('milestone celebration', () => {
   it('starts with an empty layer', () => {
     setup();

@@ -6,7 +6,6 @@ import { fmt } from './format';
 import { applySettings, load, OFFLINE_CAP_SECONDS, save, saveSettings, wipe } from './save';
 import { UI } from './ui';
 import { sound } from './fx';
-import { registerSW } from 'virtual:pwa-register';
 import { inject } from '@vercel/analytics';
 
 // Production only: in dev this would pull a script off Vercel's CDN, and the
@@ -29,7 +28,7 @@ if (loaded.kind === 'broken') {
   ui.toast(
     '⏳',
     'Save is newer than this version',
-    'Your progress is safe and untouched. Reload once the update lands.',
+    'Your progress is safe and untouched. Reload to pick up the newer version.',
     'toast-bad',
   );
 }
@@ -74,16 +73,6 @@ ui.onCoreClick = (x, y) => {
 };
 ui.onPurchase = () => runChecks();
 ui.onRestart = () => hardReset();
-
-// A waiting service worker is offered, never forced: swapping assets mid-run is
-// what this replaces. Accepting saves first, so an update cannot cost progress.
-const updateSW = registerSW({
-  onNeedRefresh: () => ui.showUpdatePrompt(),
-});
-ui.onUpdateAccept = () => {
-  save(state);
-  void updateSW(true);
-};
 
 function runChecks(): void {
   for (const id of checkAchievements(state, derive(state))) announceAchievement(id);
