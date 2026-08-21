@@ -23,5 +23,8 @@
     "vite": "^6.0.0",
     "vite-plugin-pwa": "^1.3.0",
     "vitest": "^3.0.0"
+  },
+  "dependencies": {
+    "@vercel/analytics": "^2.0.1"
   }
 }

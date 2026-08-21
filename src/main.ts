@@ -7,6 +7,11 @@ import { applySettings, load, OFFLINE_CAP_SECONDS, save, saveSettings, wipe } fr
 import { UI } from './ui';
 import { sound } from './fx';
 import { registerSW } from 'virtual:pwa-register';
+import { inject } from '@vercel/analytics';
+
+// Production only: in dev this would pull a script off Vercel's CDN, and the
+// rest of the game is deliberately self-hosted and offline-capable.
+if (import.meta.env.PROD) inject();
 
 const loaded = load();
 const state = loaded.state;
