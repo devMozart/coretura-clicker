@@ -1,6 +1,6 @@
 import './style.css';
 import { ACHIEVEMENT_BY_ID, ACHIEVEMENTS, BURST_INTERVAL, MILESTONES } from './content';
-import { checkAchievements, click, derive, pruneEffects, tick } from './game';
+import { accrue, checkAchievements, click, derive, earn, pruneEffects, tick } from './game';
 import { EventDirector } from './events';
 import { fmt } from './format';
 import { applySettings, load, OFFLINE_CAP_SECONDS, save, saveSettings, wipe } from './save';
@@ -78,32 +78,63 @@ function runChecks(): void {
   for (const id of checkAchievements(state, derive(state))) announceAchievement(id);
 }
 
-// Main loop: production + HUD every frame.
-let last = performance.now();
+/** Long enough away that the catch-up is worth a word, rather than a silent jump. */
+const CATCH_UP_TOAST_SECONDS = 60;
+
+// Production runs off elapsed wall-clock time, not off frames: a hidden tab
+// stops firing requestAnimationFrame, so anything driven by frame deltas simply
+// stops earning. settle() is called from the loop, before every save, and when
+// the tab comes back, so no stretch of time goes unpaid.
+let lastAccrual = Date.now();
 let burstClock = 0;
-function frame(nowFrame: number): void {
-  const dt = Math.min((nowFrame - last) / 1000, 1);
-  last = nowFrame;
-  const now = Date.now();
+
+function settle(now = Date.now()): void {
+  const elapsed = (now - lastAccrual) / 1000;
+  lastAccrual = now;
+
   const d = derive(state, now);
-  tick(state, d, dt);
+  const a = accrue(elapsed, burstClock, OFFLINE_CAP_SECONDS);
+  burstClock = a.burstClock;
+  tick(state, d, a.seconds);
 
-  // Consultants deliver everything as one lump on a fixed cadence.
-  burstClock += dt;
-  if (burstClock >= BURST_INTERVAL) {
-    burstClock -= BURST_INTERVAL;
-    if (d.burstPerSec > 0) {
-      const amount = d.burstPerSec * BURST_INTERVAL;
-      state.loc += amount;
-      state.funding += amount;
-      ui.burstFeedback(amount);
-    }
+  // Consultants deliver in lumps, and a long stretch owes every lump in it.
+  if (a.bursts > 0 && d.burstPerSec > 0) {
+    const amount = a.bursts * d.burstPerSec * BURST_INTERVAL;
+    earn(state, amount);
+    // a floater is cleaned up by animationend, which never fires while hidden
+    if (document.visibilityState === 'visible') ui.burstFeedback(amount);
   }
+}
 
+function frame(): void {
+  const now = Date.now();
+  settle(now);
   events.update(now);
   ui.updateHud(now);
   requestAnimationFrame(frame);
 }
+
+// Background timers still fire now and then, so part of a long absence is paid
+// off before the player looks again. Measuring from the moment the tab went away
+// reports what the whole absence earned rather than only the last unpaid slice.
+let hiddenAt: number | null = null;
+let locWhenHidden = 0;
+
+document.addEventListener('visibilitychange', () => {
+  settle();
+  if (document.visibilityState === 'hidden') {
+    hiddenAt = Date.now();
+    locWhenHidden = state.loc;
+    return;
+  }
+  if (hiddenAt === null) return;
+  const away = (Date.now() - hiddenAt) / 1000;
+  const earned = state.loc - locWhenHidden;
+  hiddenAt = null;
+  if (away >= CATCH_UP_TOAST_SECONDS && earned > 0) {
+    ui.toast('🌙', 'Caught up', `The team shipped ${fmt(earned)} LoC while you were away`, 'toast-good');
+  }
+});
 
 // Store + unlock checks a few times per second — cheaper than per-frame.
 setInterval(() => {
@@ -112,8 +143,14 @@ setInterval(() => {
   ui.refreshStore();
 }, 250);
 
-setInterval(() => save(state), 5000);
-const saveOnUnload = () => save(state);
+setInterval(() => {
+  settle();
+  save(state);
+}, 5000);
+const saveOnUnload = () => {
+  settle();
+  save(state);
+};
 window.addEventListener('beforeunload', saveOnUnload);
 
 function hardReset(): void {

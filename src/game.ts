@@ -1,4 +1,4 @@
-import { ACHIEVEMENTS, PRODUCERS, PRODUCER_BY_ID, UPGRADE_BY_ID, UPGRADES } from './content';
+import { ACHIEVEMENTS, BURST_INTERVAL, PRODUCERS, PRODUCER_BY_ID, UPGRADE_BY_ID, UPGRADES } from './content';
 import type { Derived, ProducerDef, State, TimedEffect } from './types';
 
 // Balancing knobs
@@ -170,6 +170,28 @@ export function click(s: State, d: Derived): number {
 
 export function tick(s: State, d: Derived, dtSeconds: number): void {
   if (d.continuousPerSec > 0) earn(s, d.continuousPerSec * dtSeconds);
+}
+
+export interface Accrual {
+  /** seconds to pay for, once the cap has been applied */
+  seconds: number;
+  /** whole burst intervals that completed in that stretch */
+  bursts: number;
+  /** time carried towards the next burst */
+  burstClock: number;
+}
+
+/**
+ * Splits a stretch of elapsed wall-clock time into what production owes for it.
+ * Frames are not a clock — a hidden tab stops firing them altogether — so this
+ * works from elapsed time, and caps a single stretch the way offline time is
+ * capped so a machine waking from a week's sleep cannot pay out a week.
+ */
+export function accrue(elapsedSeconds: number, burstClock: number, capSeconds: number): Accrual {
+  const seconds = Math.min(Math.max(elapsedSeconds, 0), Math.max(capSeconds, 0));
+  const clock = burstClock + seconds;
+  const bursts = Math.floor(clock / BURST_INTERVAL);
+  return { seconds, bursts, burstClock: clock - bursts * BURST_INTERVAL };
 }
 
 export function buyProducer(s: State, id: string, count: number): boolean {

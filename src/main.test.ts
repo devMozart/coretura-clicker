@@ -3,8 +3,11 @@
 // it and look at what it did. requestAnimationFrame is stubbed so the game loop
 // never starts, which means the HUD is never painted — assertions read state via
 // the DEV-only `__game` handle instead.
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mountPage } from './test-dom';
+import { BURST_INTERVAL, PRODUCER_BY_ID } from './content';
+import { OFFLINE_CAP_SECONDS } from './save';
+import { fmt } from './format';
 
 import type { State } from './types';
 
@@ -25,14 +28,34 @@ const store = new Map<string, string>();
 const SAVE_KEY = 'coretura-clicker-save';
 const BROKEN_KEY = 'coretura-clicker-save-broken';
 
+let frames: FrameRequestCallback[] = [];
+
 async function boot(): Promise<void> {
   vi.resetModules();
   mountPage();
-  vi.stubGlobal('requestAnimationFrame', () => 0); // do not start the loop
+  frames = [];
+  // hold the loop instead of running it, so the tests decide when a frame lands
+  vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => frames.push(cb));
   await import('./main');
 }
 
+/** happy-dom has no real tab, so drive visibilityState by hand. */
+function setVisibility(value: 'visible' | 'hidden'): void {
+  Object.defineProperty(document, 'visibilityState', { value, configurable: true });
+  document.dispatchEvent(new Event('visibilitychange'));
+}
+
+/** Runs the pending frame, as a visible tab would. */
+function runFrame(): void {
+  const cb = frames.pop();
+  frames = [];
+  cb?.(0);
+}
+
 const gameState = () => (window as unknown as { __game: { state: State } }).__game.state;
+
+const rateOf = () =>
+  (window as unknown as { __game: { derive: () => { locPerSec: number } } }).__game.derive().locPerSec;
 
 const toasts = () => [...document.querySelectorAll('.toast-text strong')].map((n) => n.textContent);
 
@@ -134,5 +157,124 @@ describe('milestones', () => {
     localStorage.setItem('coretura-clicker-save', JSON.stringify(blob));
     await boot();
     expect(document.querySelector('.milestone')).toBeNull();
+  });
+});
+
+describe('production while the tab is away', () => {
+  const T0 = 1_700_000_000_000;
+
+  beforeEach(() => {
+    // only Date is faked: setInterval and the stubbed rAF have to stay real
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(T0);
+  });
+
+  afterEach(() => vi.useRealTimers());
+
+  it('pays for the whole time away, not just the last frame', async () => {
+    // a hidden tab fires no frames at all, so the first frame back carries the
+    // entire gap. Clamping that gap used to throw all but a second of it away.
+    await boot();
+    const state = gameState();
+    state.owned = { cicd: 10 };
+    const rate = rateOf();
+    runFrame();
+
+    const before = state.loc;
+    vi.setSystemTime(T0 + 60_000);
+    runFrame();
+
+    expect(state.loc - before).toBeCloseTo(rate * 60, 0);
+  });
+
+  it('pays every consultant lump the gap contained', async () => {
+    await boot();
+    const state = gameState();
+    state.owned = { consultant: 1 };
+    runFrame();
+
+    const before = state.loc;
+    vi.setSystemTime(T0 + 60_000); // six whole burst intervals
+    runFrame();
+
+    const perLump = PRODUCER_BY_ID['consultant'].baseCps * BURST_INTERVAL;
+    expect(state.loc - before).toBeCloseTo(perLump * 6, 0);
+  });
+
+  it('caps a single gap, so a machine waking from a long sleep cannot pay it all', async () => {
+    await boot();
+    const state = gameState();
+    state.owned = { cicd: 10 };
+    const rate = rateOf();
+    runFrame();
+
+    const before = state.loc;
+    vi.setSystemTime(T0 + 30 * 24 * 3600 * 1000);
+    runFrame();
+
+    expect(state.loc - before).toBeCloseTo(rate * OFFLINE_CAP_SECONDS, 0);
+  });
+
+  it('settles up when the tab comes back, without waiting for a frame', async () => {
+    await boot();
+    const state = gameState();
+    state.owned = { cicd: 10 };
+    const rate = rateOf();
+    runFrame();
+
+    const before = state.loc;
+    setVisibility('hidden');
+    vi.setSystemTime(T0 + 120_000);
+    setVisibility('visible');
+
+    expect(state.loc - before).toBeCloseTo(rate * 120, 0);
+    expect(toasts()).toContain('Caught up');
+  });
+
+  it('reports the whole absence, not just the part still unpaid', async () => {
+    await boot();
+    const state = gameState();
+    state.owned = { cicd: 10 };
+    const rate = rateOf();
+    runFrame();
+
+    setVisibility('hidden');
+    // a throttled background timer pays off part of the absence early
+    vi.setSystemTime(T0 + 100_000);
+    window.dispatchEvent(new Event('beforeunload')); // settles, as any save does
+    vi.setSystemTime(T0 + 200_000);
+    setVisibility('visible');
+
+    const body = [...document.querySelectorAll('.toast-text span')].map((n) => n.textContent);
+    expect(toasts()).toContain('Caught up');
+    // 200s of production, not the 100s that was left unpaid
+    expect(body.join(' ')).toContain(fmt(rate * 200));
+  });
+
+  it('says nothing for a glance away', async () => {
+    await boot();
+    gameState().owned = { cicd: 10 };
+    runFrame();
+
+    setVisibility('hidden');
+    vi.setSystemTime(T0 + 3_000);
+    setVisibility('visible');
+
+    expect(toasts()).not.toContain('Caught up');
+  });
+
+  it('settles before saving, so closing a hidden tab keeps the gap', async () => {
+    await boot();
+    const state = gameState();
+    state.owned = { cicd: 10 };
+    const rate = rateOf();
+    runFrame();
+
+    // no frame runs while hidden; the tab is simply closed an hour later
+    vi.setSystemTime(T0 + 3_600_000);
+    window.dispatchEvent(new Event('beforeunload'));
+
+    const saved = JSON.parse(localStorage.getItem(SAVE_KEY)!) as { state: { loc: number } };
+    expect(saved.state.loc).toBeCloseTo(rate * 3600, 0);
   });
 });

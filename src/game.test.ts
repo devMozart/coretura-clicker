@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { ACHIEVEMENTS, PRODUCER_BY_ID } from './content';
+import { ACHIEVEMENTS, BURST_INTERVAL, PRODUCER_BY_ID } from './content';
 import {
+  accrue,
   addEffect,
   buyProducer,
   buyUpgrade,
@@ -261,6 +262,51 @@ describe('store gating', () => {
     expect(visibleUpgrades(s).map((u) => u.id)).not.toContain('hexagonal');
     buyProducer(s, 'senior', 5);
     expect(visibleUpgrades(s).map((u) => u.id)).toContain('hexagonal');
+  });
+});
+
+describe('accrue', () => {
+  const CAP = 2 * 60 * 60;
+
+  it('pays for the whole stretch, however long the gap between frames', () => {
+    // the bug this guards: a hidden tab fires no frames, and clamping the gap
+    // to a second threw away everything else it was owed
+    expect(accrue(60, 0, CAP).seconds).toBe(60);
+    expect(accrue(3600, 0, CAP).seconds).toBe(3600);
+  });
+
+  it('caps one stretch, so a machine waking from a long sleep cannot pay it all', () => {
+    expect(accrue(30 * 24 * 3600, 0, CAP).seconds).toBe(CAP);
+  });
+
+  it('treats a backwards clock as no time at all', () => {
+    expect(accrue(-500, 0, CAP).seconds).toBe(0);
+  });
+
+  it('counts every burst interval in the stretch, not just the first', () => {
+    expect(accrue(60, 0, CAP).bursts).toBe(6);
+    expect(accrue(BURST_INTERVAL * 100, 0, CAP).bursts).toBe(100);
+  });
+
+  it('carries the remainder towards the next burst', () => {
+    const a = accrue(BURST_INTERVAL * 2.5, 0, CAP);
+    expect(a.bursts).toBe(2);
+    expect(a.burstClock).toBeCloseTo(BURST_INTERVAL * 0.5);
+  });
+
+  it('adds the carried clock to the next stretch', () => {
+    const first = accrue(BURST_INTERVAL - 1, 0, CAP);
+    expect(first.bursts).toBe(0);
+    expect(accrue(1, first.burstClock, CAP).bursts).toBe(1);
+  });
+
+  it('does not bank bursts beyond the cap', () => {
+    const a = accrue(30 * 24 * 3600, 0, CAP);
+    expect(a.bursts).toBe(CAP / BURST_INTERVAL);
+  });
+
+  it('earns nothing from no elapsed time', () => {
+    expect(accrue(0, 0, CAP)).toEqual({ seconds: 0, bursts: 0, burstClock: 0 });
   });
 });
 
