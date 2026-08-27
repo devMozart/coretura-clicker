@@ -155,6 +155,7 @@ a:focus-visible {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  flex: none; /* the left side takes the width it needs; the stats give way */
 }
 
 .brand-name {
@@ -172,6 +173,7 @@ a:focus-visible {
 
 .brand-ad {
   font-size: 11px;
+  white-space: nowrap;
   line-height: 1.1;
   color: var(--beige);
   text-decoration: none;
@@ -1112,6 +1114,18 @@ a:focus-visible {
 
   .core-wrap {
     width: min(56vw, 280px);
+  }
+}
+
+/*
+ * The brand sets its own width, so the stats are what give way. Below roughly
+ * 380px there is not room for both, and squeezing used to push the menu button
+ * off the edge. The number itself is not lost: achievements are worth 1% each,
+ * so the count in their own panel says the same thing.
+ */
+@media (max-width: 380px) {
+  .stat {
+    display: none;
   }
 }
 
