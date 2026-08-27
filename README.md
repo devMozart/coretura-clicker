@@ -30,9 +30,3 @@ npm run check    # all of the above, as one gate
 
 - Prestige, the "Funding Rounds" idea in DESIGN.md 3.7. The game currently ends at The
   Platform: reset progress for permanent multipliers, Seed to Series A to IPO. Biggest gap.
-- More hand-written upgrades. 80 of the 104 are generated tier doublers, and the named ones
-  (Rubber duck, No-meeting Wednesdays, Async standups) are the ones people quote.
-
-**Technical**
-
-- Save export/import. localStorage only, so there is no way to move between phone and laptop.
