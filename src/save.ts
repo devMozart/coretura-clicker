@@ -1,5 +1,6 @@
 import { ACHIEVEMENT_BY_ID, PRODUCER_BY_ID, UPGRADE_BY_ID } from './content';
 import { newState } from './game';
+import { fmt } from './format';
 import type { State } from './types';
 
 const KEY = 'coretura-clicker-save';
@@ -182,7 +183,15 @@ export function save(s: State): void {
   if (storedVersion() > SAVE_VERSION) return;
 
   s.lastSaved = Date.now();
-  const envelope: Envelope = {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(toEnvelope(s)));
+  } catch {
+    // storage full or unavailable — the game keeps running in memory
+  }
+}
+
+function toEnvelope(s: State): Envelope {
+  return {
     v: SAVE_VERSION,
     state: {
       loc: s.loc,
@@ -194,11 +203,6 @@ export function save(s: State): void {
       lastSaved: s.lastSaved,
     },
   };
-  try {
-    localStorage.setItem(KEY, JSON.stringify(envelope));
-  } catch {
-    // storage full or unavailable — the game keeps running in memory
-  }
 }
 
 /** The version on disk, or 0 when there is nothing readable there. */
@@ -209,6 +213,42 @@ function storedVersion(): number {
   } catch {
     return 0;
   }
+}
+
+// --- Moving a save in and out of a file ---------------------------------------
+
+/**
+ * The live run as a file, taken from state rather than read back out of
+ * storage: it cannot be stale, and it works even in a throwaway session
+ * started over a save from a newer build.
+ */
+export function exportSave(s: State): string {
+  return JSON.stringify(toEnvelope(s), null, 2);
+}
+
+export function exportFilename(loc: number, now: Date): string {
+  const score = fmt(loc).replace(/[^\w.]/g, '');
+  const day = now.toISOString().slice(0, 10);
+  return `coretura-clicker-${score}-${day}.json`;
+}
+
+export type ImportOutcome = 'ok' | 'unreadable' | 'future';
+
+/**
+ * Checks a file the same way load() checks storage, and only then makes it the
+ * live save. A file from a newer build is refused rather than written, since
+ * this build could not read it back. The caller reloads to pick it up.
+ */
+export function importSave(text: string): ImportOutcome {
+  const envelope = parseEnvelope(text);
+  if (!envelope) return 'unreadable';
+  if (envelope.v > SAVE_VERSION) return 'future';
+  try {
+    localStorage.setItem(KEY, JSON.stringify(envelope));
+  } catch {
+    return 'unreadable';
+  }
+  return 'ok';
 }
 
 export function wipe(): void {

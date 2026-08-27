@@ -615,3 +615,108 @@ describe('milestone celebration', () => {
     expect(layer.children.length).toBe(0);
   });
 });
+
+describe('save and load from a file', () => {
+  /** A picked file, as the input would report it. */
+  function pick(text: string): void {
+    const input = el<HTMLInputElement>('import-file');
+    const file = new File([text], 'save.json', { type: 'application/json' });
+    Object.defineProperty(input, 'files', { value: [file], configurable: true });
+    input.dispatchEvent(new Event('change'));
+  }
+
+  it('asks the game for a file to save, and closes the menu', () => {
+    const { ui } = setup();
+    const onExport = vi.fn();
+    ui.onExport = onExport;
+
+    click(el('menu-btn'));
+    click(el('menu-export'));
+
+    expect(onExport).toHaveBeenCalledOnce();
+    expect(el('menu-panel').classList.contains('hidden')).toBe(true);
+  });
+
+  it('opens the file picker from the menu', () => {
+    setup();
+    const input = el<HTMLInputElement>('import-file');
+    const opened = vi.spyOn(input, 'click');
+
+    click(el('menu-btn'));
+    click(el('menu-import'));
+
+    expect(opened).toHaveBeenCalledOnce();
+  });
+
+  it('does not import until the overwrite is confirmed', async () => {
+    const { ui } = setup();
+    const onImport = vi.fn();
+    ui.onImport = onImport;
+
+    click(el('menu-btn'));
+    pick('{"v":1,"state":{"loc":5}}');
+    await vi.waitFor(() => expect(el('import-confirm').classList.contains('hidden')).toBe(false));
+    expect(onImport).not.toHaveBeenCalled();
+
+    click(el('import-load'));
+    expect(onImport).toHaveBeenCalledWith('{"v":1,"state":{"loc":5}}');
+  });
+
+  it('drops the pending file when the confirm is cancelled', async () => {
+    const { ui } = setup();
+    const onImport = vi.fn();
+    ui.onImport = onImport;
+
+    click(el('menu-btn'));
+    pick('{"v":1,"state":{"loc":5}}');
+    await vi.waitFor(() => expect(el('import-confirm').classList.contains('hidden')).toBe(false));
+
+    click(el('import-cancel'));
+    expect(el('import-confirm').classList.contains('hidden')).toBe(true);
+
+    click(el('import-load')); // a stale press must do nothing
+    expect(onImport).not.toHaveBeenCalled();
+  });
+
+  it('disarms the confirm when the menu closes, so it cannot fire later', async () => {
+    const { ui } = setup();
+    const onImport = vi.fn();
+    ui.onImport = onImport;
+
+    click(el('menu-btn'));
+    pick('{"v":1,"state":{"loc":5}}');
+    await vi.waitFor(() => expect(el('import-confirm').classList.contains('hidden')).toBe(false));
+
+    click(document.body); // click away
+    expect(el('import-confirm').classList.contains('hidden')).toBe(true);
+
+    click(el('import-load'));
+    expect(onImport).not.toHaveBeenCalled();
+  });
+
+  it('hands the file straight through, so validation stays in one place', async () => {
+    const { ui } = setup();
+    const onImport = vi.fn();
+    ui.onImport = onImport;
+
+    click(el('menu-btn'));
+    pick('not a save at all');
+    await vi.waitFor(() => expect(el('import-confirm').classList.contains('hidden')).toBe(false));
+    click(el('import-load'));
+
+    expect(onImport).toHaveBeenCalledWith('not a save at all');
+  });
+
+  it('offers a download without leaking the blob url', () => {
+    const { ui } = setup();
+    const created = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:test');
+    const revoked = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+
+    ui.download('{"v":1}', 'run.json');
+
+    expect(created).toHaveBeenCalledOnce();
+    expect(revoked).toHaveBeenCalledWith('blob:test');
+    created.mockRestore();
+    revoked.mockRestore();
+  });
+});

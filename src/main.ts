@@ -3,7 +3,17 @@ import { ACHIEVEMENT_BY_ID, ACHIEVEMENTS, BURST_INTERVAL, MILESTONES } from './c
 import { accrue, checkAchievements, click, derive, earn, pruneEffects, tick } from './game';
 import { EventDirector } from './events';
 import { fmt } from './format';
-import { applySettings, load, OFFLINE_CAP_SECONDS, save, saveSettings, wipe } from './save';
+import {
+  applySettings,
+  exportFilename,
+  exportSave,
+  importSave,
+  load,
+  OFFLINE_CAP_SECONDS,
+  save,
+  saveSettings,
+  wipe,
+} from './save';
 import { UI } from './ui';
 import { sound } from './fx';
 import { inject } from '@vercel/analytics';
@@ -143,7 +153,7 @@ setInterval(() => {
   ui.refreshStore();
 }, 250);
 
-setInterval(() => {
+const autosave = setInterval(() => {
   settle();
   save(state);
 }, 5000);
@@ -153,12 +163,39 @@ const saveOnUnload = () => {
 };
 window.addEventListener('beforeunload', saveOnUnload);
 
-function hardReset(): void {
+/** Stops anything that would write the old run back over what we just changed. */
+function stopPersisting(): void {
+  clearInterval(autosave);
   window.removeEventListener('beforeunload', saveOnUnload);
+}
+
+function hardReset(): void {
+  stopPersisting();
   saveSettings(state); // progress goes, the sound choice stays
   wipe();
   location.reload();
 }
+
+ui.onExport = () => {
+  settle();
+  save(state); // so the file matches the run on screen
+  ui.download(exportSave(state), exportFilename(state.loc, new Date()));
+  ui.toast('↓', 'Saved to a file', 'Keep it somewhere safe.', 'toast-good');
+};
+
+ui.onImport = (text) => {
+  const outcome = importSave(text);
+  if (outcome === 'ok') {
+    stopPersisting(); // the imported blob must survive the reload
+    location.reload();
+    return;
+  }
+  const body =
+    outcome === 'future'
+      ? 'It was saved by a newer version of the game.'
+      : 'It is not a Coretura Clicker save.';
+  ui.toast('⚠️', 'Could not load that file', `${body} Nothing has changed.`, 'toast-bad');
+};
 
 document.getElementById('ach-total')!.textContent = String(ACHIEVEMENTS.length);
 

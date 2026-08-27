@@ -42,6 +42,9 @@ export class UI {
   private soundItem = el<HTMLButtonElement>('menu-sound');
   private restartItem = el<HTMLButtonElement>('menu-restart');
   private restartConfirm = el('menu-confirm');
+  private importConfirm = el('import-confirm');
+  private importFile = el<HTMLInputElement>('import-file');
+  private pendingImport: string | null = null;
   private stage = el('stage');
   private celebration = el('celebration');
   private shareBackdrop = el('share-backdrop');
@@ -137,6 +140,10 @@ export class UI {
   }
 
   onRestart: () => void = () => {};
+  /** Hands back the text to download. */
+  onExport: () => void = () => {};
+  /** Called only once the player has confirmed the overwrite. */
+  onImport: (text: string) => void = () => {};
 
   private wireMenu(): void {
     this.renderSound();
@@ -157,6 +164,21 @@ export class UI {
       void this.openShare();
     });
 
+    el('menu-export').addEventListener('click', () => {
+      this.toggleMenu(false);
+      this.onExport();
+    });
+
+    el('menu-import').addEventListener('click', () => this.importFile.click());
+    this.importFile.addEventListener('change', () => void this.readImport());
+    el('import-cancel').addEventListener('click', () => this.armImport(false));
+    el('import-load').addEventListener('click', () => {
+      const text = this.pendingImport;
+      this.armImport(false);
+      this.toggleMenu(false);
+      if (text !== null) this.onImport(text);
+    });
+
     this.restartItem.addEventListener('click', () => this.armRestart(true));
     el('menu-cancel').addEventListener('click', () => this.armRestart(false));
     el('menu-wipe').addEventListener('click', () => this.onRestart());
@@ -174,7 +196,41 @@ export class UI {
   private toggleMenu(open: boolean): void {
     this.menuPanel.classList.toggle('hidden', !open);
     this.menuBtn.setAttribute('aria-expanded', String(open));
-    if (!open) this.armRestart(false); // never reopen with a half-armed confirm
+    if (!open) {
+      // never reopen with a half-armed confirm
+      this.armRestart(false);
+      this.armImport(false);
+    }
+  }
+
+  /** Reads the chosen file and arms the confirm; nothing is overwritten yet. */
+  private async readImport(): Promise<void> {
+    const file = this.importFile.files?.[0];
+    this.importFile.value = ''; // so picking the same file again still fires
+    if (!file) return;
+    try {
+      this.pendingImport = await file.text();
+    } catch {
+      this.pendingImport = null;
+      this.toast('⚠️', 'Could not read that file', 'Nothing has changed.', 'toast-bad');
+      return;
+    }
+    this.armImport(true);
+  }
+
+  private armImport(armed: boolean): void {
+    if (!armed) this.pendingImport = null;
+    this.importConfirm.classList.toggle('hidden', !armed);
+  }
+
+  /** Offers a file to save. The blob URL is released once the click is through. */
+  download(text: string, filename: string, type = 'application/json'): void {
+    const url = URL.createObjectURL(new Blob([text], { type }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   private armRestart(armed: boolean): void {

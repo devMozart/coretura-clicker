@@ -276,6 +276,15 @@ a:focus-visible {
   color: var(--pink);
 }
 
+.menu-primary {
+  color: var(--blue-bright);
+}
+
+.menu-btn-small.menu-primary:hover {
+  background: rgba(6, 175, 227, 0.16);
+  border-color: rgba(6, 175, 227, 0.5);
+}
+
 .menu-confirm {
   display: flex;
   flex-direction: column;

@@ -117,6 +117,22 @@
               <span class="menu-icon">↗︎</span>
               <span>Share your run</span>
             </button>
+            <button id="menu-export" class="menu-item" role="menuitem">
+              <span class="menu-icon">💾</span>
+              <span>Save to file</span>
+            </button>
+            <button id="menu-import" class="menu-item" role="menuitem">
+              <span class="menu-icon">📂</span>
+              <span>Load from file</span>
+            </button>
+            <input id="import-file" type="file" accept="application/json,.json" class="hidden" />
+            <div id="import-confirm" class="menu-confirm hidden" role="none">
+              <span class="menu-confirm-text">Replace your current run?</span>
+              <div class="menu-confirm-actions">
+                <button id="import-cancel" class="menu-btn-small" role="menuitem">Cancel</button>
+                <button id="import-load" class="menu-btn-small menu-primary" role="menuitem">Load</button>
+              </div>
+            </div>
             <button id="menu-restart" class="menu-item menu-danger" role="menuitem">
               <span class="menu-icon">↺</span>
               <span>Restart game</span>

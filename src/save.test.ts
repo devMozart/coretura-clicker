@@ -21,7 +21,18 @@ let failReads = false;
   },
 };
 
-const { SAVE_VERSION, applySettings, load, runMigrations, save, saveSettings, wipe } = await import('./save');
+const {
+  SAVE_VERSION,
+  applySettings,
+  exportFilename,
+  exportSave,
+  importSave,
+  load,
+  runMigrations,
+  save,
+  saveSettings,
+  wipe,
+} = await import('./save');
 const { newState } = await import('./game');
 
 const SAVE_KEY = 'coretura-clicker-save';
@@ -370,5 +381,130 @@ describe('when storage misbehaves', () => {
     const s = newState();
     expect(() => applySettings(s)).not.toThrow();
     expect(s.muted).toBe(false);
+  });
+});
+
+describe('exporting to a file', () => {
+  it('writes the same envelope shape the save key holds', () => {
+    const s = newState();
+    s.loc = 4242;
+    s.owned = { intern: 3 };
+    const parsed = JSON.parse(exportSave(s)) as { v: number; state: Record<string, unknown> };
+    expect(parsed.v).toBe(SAVE_VERSION);
+    expect(parsed.state.loc).toBe(4242);
+    expect(parsed.state.owned).toEqual({ intern: 3 });
+  });
+
+  it('exports the live run, not whatever storage happens to hold', () => {
+    const s = newState();
+    s.loc = 10;
+    save(s);
+    s.loc = 999; // played on since the last autosave
+    expect((JSON.parse(exportSave(s)) as { state: { loc: number } }).state.loc).toBe(999);
+  });
+
+  it('works when storage holds a save from a newer build, which save() refuses', () => {
+    put(SAVE_VERSION + 1, { loc: 5e9 });
+    const s = newState();
+    s.loc = 7;
+    expect((JSON.parse(exportSave(s)) as { state: { loc: number } }).state.loc).toBe(7);
+  });
+
+  it('leaves the sound preference out, since it belongs to the device', () => {
+    const s = newState();
+    s.muted = true;
+    const parsed = JSON.parse(exportSave(s)) as { state: Record<string, unknown> };
+    expect(parsed.state.muted).toBeUndefined();
+  });
+
+  it('round trips through import', () => {
+    const s = newState();
+    s.loc = 1234.5;
+    s.clicks = 9;
+    s.upgrades = new Set(['keyboard']);
+    const text = exportSave(s);
+
+    store.clear();
+    expect(importSave(text)).toBe('ok');
+    const back = load();
+    expect(back.kind).toBe('loaded');
+    expect(back.state.loc).toBe(1234.5);
+    expect(back.state.clicks).toBe(9);
+    expect([...back.state.upgrades]).toEqual(['keyboard']);
+  });
+});
+
+describe('exportFilename', () => {
+  const day = new Date('2026-08-27T10:30:00Z');
+
+  it('carries the score and the date', () => {
+    expect(exportFilename(2410, day)).toBe('coretura-clicker-2.41K-2026-08-27.json');
+  });
+
+  it('keeps the name filesystem-safe', () => {
+    expect(exportFilename(Infinity, day)).toBe('coretura-clicker--2026-08-27.json');
+  });
+
+  it('handles a fresh run', () => {
+    expect(exportFilename(0, day)).toBe('coretura-clicker-0-2026-08-27.json');
+  });
+});
+
+describe('importing a file', () => {
+  const good = () => JSON.stringify({ v: SAVE_VERSION, state: { loc: 500 } });
+
+  it('makes a valid file the live save', () => {
+    expect(importSave(good())).toBe('ok');
+    expect(load().state.loc).toBe(500);
+  });
+
+  it('replaces whatever was there', () => {
+    const s = newState();
+    s.loc = 1;
+    save(s);
+    importSave(good());
+    expect(load().state.loc).toBe(500);
+  });
+
+  const junk: [string, string][] = [
+    ['not JSON', '{{{'],
+    ['a bare string', '"hello"'],
+    ['null', 'null'],
+    ['an array', '[1,2]'],
+    ['no version', JSON.stringify({ state: { loc: 1 } })],
+    ['a non-numeric version', JSON.stringify({ v: 'one', state: { loc: 1 } })],
+    ['no state', JSON.stringify({ v: 1 })],
+    ['a non-object state', JSON.stringify({ v: 1, state: 5 })],
+    ['an empty file', ''],
+  ];
+
+  it.each(junk)('refuses %s', (_label, text) => {
+    expect(importSave(text)).toBe('unreadable');
+  });
+
+  it('refuses a file from a newer build rather than writing something it cannot read', () => {
+    expect(importSave(JSON.stringify({ v: SAVE_VERSION + 1, state: { loc: 9 } }))).toBe('future');
+  });
+
+  it('leaves the existing save untouched when it refuses', () => {
+    const s = newState();
+    s.loc = 77;
+    save(s);
+    const before = store.get(SAVE_KEY);
+
+    expect(importSave('{{{')).toBe('unreadable');
+    expect(importSave(JSON.stringify({ v: SAVE_VERSION + 5, state: {} }))).toBe('future');
+    expect(store.get(SAVE_KEY)).toBe(before);
+  });
+
+  it('reports a storage failure rather than claiming success', () => {
+    failWrites = true;
+    expect(importSave(good())).toBe('unreadable');
+  });
+
+  it('runs migrations on load, so an older file still opens', () => {
+    // a v1 file, whatever the current version is
+    expect(importSave(JSON.stringify({ v: 1, state: { loc: 321 } }))).toBe('ok');
+    expect(load().state.loc).toBe(321);
   });
 });

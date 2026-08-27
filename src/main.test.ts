@@ -4,6 +4,7 @@
 // never starts, which means the HUD is never painted — assertions read state via
 // the DEV-only `__game` handle instead.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { mountPage } from './test-dom';
 import { BURST_INTERVAL, PRODUCER_BY_ID } from './content';
 import { OFFLINE_CAP_SECONDS } from './save';
@@ -201,6 +202,39 @@ describe('production while the tab is away', () => {
     expect(state.loc - before).toBeCloseTo(perLump * 6, 0);
   });
 
+  it('ships the time away into funding too, not just the score', async () => {
+    // funding is the spend currency: if it stood still while hidden, the idle
+    // half of the game would earn a score it could never spend
+    await boot();
+    const state = gameState();
+    state.owned = { cicd: 10 };
+    const rate = rateOf();
+    runFrame();
+
+    const loc = state.loc;
+    const funding = state.funding;
+    vi.setSystemTime(T0 + 60_000);
+    runFrame();
+
+    expect(state.funding - funding).toBeCloseTo(rate * 60, 0);
+    expect(state.funding - funding).toBeCloseTo(state.loc - loc, 0);
+  });
+
+  it('ships burst lumps into funding as well', async () => {
+    await boot();
+    const state = gameState();
+    state.owned = { consultant: 1 };
+    runFrame();
+
+    const loc = state.loc;
+    const funding = state.funding;
+    vi.setSystemTime(T0 + 60_000);
+    runFrame();
+
+    expect(state.funding - funding).toBeGreaterThan(0);
+    expect(state.funding - funding).toBeCloseTo(state.loc - loc, 0);
+  });
+
   it('caps a single gap, so a machine waking from a long sleep cannot pay it all', async () => {
     await boot();
     const state = gameState();
@@ -276,5 +310,128 @@ describe('production while the tab is away', () => {
 
     const saved = JSON.parse(localStorage.getItem(SAVE_KEY)!) as { state: { loc: number } };
     expect(saved.state.loc).toBeCloseTo(rate * 3600, 0);
+  });
+});
+
+describe('saving and loading a file', () => {
+  const SAVE = 'coretura-clicker-save';
+
+  const press = (id: string) =>
+    document.getElementById(id)!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+  /** Swaps in a location whose reload() can be observed instead of navigating. */
+  function stubReload(): Mock {
+    const reload = vi.fn();
+    Object.defineProperty(window, 'location', {
+      value: { ...window.location, reload },
+      configurable: true,
+    });
+    return reload;
+  }
+
+  /** Picks a file the way the input reports one, then waits for the confirm. */
+  async function pickFile(text: string): Promise<void> {
+    const input = document.getElementById('import-file') as HTMLInputElement;
+    const file = new File([text], 'save.json', { type: 'application/json' });
+    Object.defineProperty(input, 'files', { value: [file], configurable: true });
+    input.dispatchEvent(new Event('change'));
+    await vi.waitFor(() =>
+      expect(document.getElementById('import-confirm')!.classList.contains('hidden')).toBe(false),
+    );
+  }
+
+  it('saves the run on screen, and names the file after it', async () => {
+    await boot();
+    const state = gameState();
+    state.loc = 4242;
+    state.owned = { intern: 3 };
+
+    const created = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:x');
+    const revoked = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    const names: string[] = [];
+    const clicked = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      names.push(this.download);
+    });
+
+    press('menu-btn');
+    press('menu-export');
+
+    // it persists first, so the file cannot disagree with the game
+    const saved = JSON.parse(localStorage.getItem(SAVE)!) as { state: { loc: number } };
+    expect(saved.state.loc).toBeCloseTo(4242, 0);
+    expect(names[0]).toMatch(/^coretura-clicker-.*\.json$/);
+    expect(revoked).toHaveBeenCalledWith('blob:x');
+    expect(toasts()).toContain('Saved to a file');
+
+    created.mockRestore();
+    revoked.mockRestore();
+    clicked.mockRestore();
+  });
+
+  it('loads a file the player confirms', async () => {
+    await boot();
+    gameState().loc = 12345; // the run being replaced
+
+    const reload = stubReload();
+
+    press('menu-btn');
+    await pickFile(JSON.stringify({ v: 1, state: { loc: 7 } }));
+    press('import-load');
+
+    const saved = JSON.parse(localStorage.getItem(SAVE)!) as { state: { loc: number } };
+    expect(saved.state.loc).toBe(7);
+    expect(reload).toHaveBeenCalledOnce();
+  });
+
+  it('stops autosaving and unload-saving first, so the import survives', async () => {
+    // the race this closes: a pending autosave tick, or the unload handler,
+    // writing the replaced run straight back over what was just imported
+    const cleared = vi.spyOn(globalThis, 'clearInterval');
+    const unhooked = vi.spyOn(window, 'removeEventListener');
+    await boot();
+    stubReload();
+
+    press('menu-btn');
+    await pickFile(JSON.stringify({ v: 1, state: { loc: 7 } }));
+    press('import-load');
+
+    expect(cleared).toHaveBeenCalled();
+    expect(unhooked).toHaveBeenCalledWith('beforeunload', expect.any(Function));
+    cleared.mockRestore();
+    unhooked.mockRestore();
+  });
+
+  it('changes nothing, and says so, when the file is not a save', async () => {
+    await boot();
+    gameState().loc = 500;
+    window.dispatchEvent(new Event('beforeunload')); // put a save on disk
+    const before = localStorage.getItem(SAVE);
+
+    press('menu-btn');
+    await pickFile('not a save at all');
+    press('import-load');
+
+    expect(localStorage.getItem(SAVE)).toBe(before);
+    expect(toasts()).toContain('Could not load that file');
+  });
+
+  it('refuses a file from a newer build rather than writing it', async () => {
+    await boot();
+    press('menu-btn');
+    await pickFile(JSON.stringify({ v: 999, state: { loc: 1 } }));
+    press('import-load');
+
+    expect(localStorage.getItem(SAVE)).toBeNull();
+    expect(toasts()).toContain('Could not load that file');
+  });
+
+  it('imports nothing while the confirm is still waiting', async () => {
+    await boot();
+    press('menu-btn');
+    await pickFile(JSON.stringify({ v: 1, state: { loc: 7 } }));
+
+    expect(localStorage.getItem(SAVE)).toBeNull(); // not yet
   });
 });
