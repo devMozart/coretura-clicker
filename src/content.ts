@@ -84,6 +84,9 @@ const NAMED_UPGRADES: UpgradeDef[] = [
 
 // Milestone tiers per producer: a doubler at each owned-count threshold.
 // prettier-ignore
+// The prefixes only build the ids now. They are part of the save, so renaming one
+// would drop that upgrade from every existing save — sanitize() discards ids it
+// does not recognise. The names players read come from TIER_NAMES below.
 const TIERS = [
   { at: 1,   costMult: 12,    prefix: 'Better' },
   { at: 10,  costMult: 120,   prefix: 'Elite' },
@@ -92,28 +95,133 @@ const TIERS = [
   { at: 100, costMult: 160e3, prefix: 'Transcendent' },
 ];
 
-// Characterful names for otherwise generated upgrades.
-const TIER_OVERRIDES: Record<string, { name: string; flavor: string }> = {
-  better_intern: { name: 'Better onboarding docs', flavor: 'Interns are twice as useful.' },
-  better_junior: { name: 'Stack Overflow Teams', flavor: 'Junior Devs copy-paste twice as fast.' },
-  better_ai: { name: 'Bigger context window', flavor: 'It finally remembers the whole codebase.' },
+/**
+ * Five escalating names per producer, in tier order: a small perk at one owned,
+ * something faintly institutional by a hundred. Every doubling chain reads
+ * differently even though the effect is the same, which is the whole point.
+ */
+const TIER_NAMES: Record<string, [string, string, string, string, string]> = {
+  intern: [
+    'Onboarding docs that exist',
+    'A buddy who answers',
+    'Intern bootcamp',
+    'Graduate programme',
+    'The intern pipeline',
+  ],
+  junior: [
+    'Stack Overflow Teams',
+    'Code review rota',
+    'Definition of done',
+    'Junior dev academy',
+    'Not so junior any more',
+  ],
+  senior: [
+    'Focus time on the calendar',
+    'Conference budget',
+    'Architecture review board',
+    'Staff engineer track',
+    'They write the RFCs now',
+  ],
+  consultant: [
+    'A proper statement of work',
+    'They learned our stack',
+    'Retainer agreement',
+    'Embedded delivery squad',
+    'They run the roadmap now',
+  ],
+  techlead: [
+    'One-on-ones that happen',
+    'A written technical strategy',
+    'Delegation, at last',
+    'Staff+ career ladder',
+    'The org chart bends around them',
+  ],
+  devops: [
+    'Infrastructure as code',
+    'An observability stack',
+    'Blameless postmortems',
+    'A platform team',
+    'Nobody SSHes anywhere',
+  ],
+  cicd: [
+    'Parallel test runners',
+    'A warm build cache',
+    'Self-hosted runners',
+    'A merge queue',
+    'Green on the first try',
+  ],
+  ai: [
+    'Bigger context window',
+    'Repo-wide indexing',
+    'Agentic mode',
+    'Fine-tuned on the monorepo',
+    'It has opinions now',
+  ],
+  ngcp: ['Edge caching', 'Redundant uplinks', 'Regional failover', 'A private APN', 'Signal in the tunnel'],
+  archlab: [
+    'A reference architecture',
+    'Simulation rigs',
+    'Whiteboards that record themselves',
+    'Model-based design',
+    'The diagram compiles',
+  ],
+  truck: [
+    'A telemetry harness',
+    'Night-shift test drivers',
+    'Proving-ground access',
+    'Winter testing in Lapland',
+    'The fleet tests itself',
+  ],
+  ota: [
+    'Delta updates',
+    'Staged rollouts',
+    'One-click rollback',
+    'Constellation coverage',
+    'Patched before anyone notices',
+  ],
+  twin: [
+    'Live sensor mirroring',
+    'Physics you can trust',
+    'Counterfactual replay',
+    'It runs a week ahead',
+    'It files bugs from the future',
+  ],
+  datacenter: [
+    'Liquid cooling',
+    'Free cooling from the fjord',
+    'Its own substation',
+    'Waste heat warms the office',
+    'It has its own postcode',
+  ],
+  autonomy: [
+    'Sensor fusion',
+    'Shadow mode',
+    'Fleet learning',
+    'It writes its own tests',
+    'Hands off, eyes off',
+  ],
+  platform: [
+    'Self-service everything',
+    'One API for the whole fleet',
+    'Partners build on it',
+    'It onboards itself',
+    'Ideas ship themselves',
+  ],
 };
 
 const GENERATED_UPGRADES: UpgradeDef[] = PRODUCERS.filter((p) => p.kind !== 'joke').flatMap(
   (p): UpgradeDef[] =>
-    TIERS.map((tier) => {
-      const id = `${tier.prefix.toLowerCase()}_${p.id}`;
-      const override = TIER_OVERRIDES[id];
-      return {
-        id,
-        name: override?.name ?? `${tier.prefix} ${p.name}`,
-        icon: p.icon,
-        cost: Math.ceil(p.baseCost * tier.costMult),
-        effect: { type: 'producer', producerId: p.id, mult: 2 },
-        unlocked: (s) => own(s, p.id) >= tier.at,
-        flavor: override?.flavor ?? `${p.name} output ×2.`,
-      };
-    }),
+    TIERS.map((tier, i) => ({
+      id: `${tier.prefix.toLowerCase()}_${p.id}`,
+      // the tooltip shows the name, this line and the cost, so this line is the
+      // only place the effect is stated
+      name: TIER_NAMES[p.id][i],
+      icon: p.icon,
+      cost: Math.ceil(p.baseCost * tier.costMult),
+      effect: { type: 'producer', producerId: p.id, mult: 2 },
+      unlocked: (s) => own(s, p.id) >= tier.at,
+      flavor: `${p.name} output ×2.`,
+    })),
 );
 
 export const UPGRADES: UpgradeDef[] = [...NAMED_UPGRADES, ...GENERATED_UPGRADES].sort(

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ACHIEVEMENTS, BURST_INTERVAL, PRODUCER_BY_ID } from './content';
+import { ACHIEVEMENTS, BURST_INTERVAL, PRODUCERS, PRODUCER_BY_ID, UPGRADES, UPGRADE_BY_ID } from './content';
 import {
   accrue,
   addEffect,
@@ -17,7 +17,7 @@ import {
   tick,
   visibleUpgrades,
 } from './game';
-import type { State } from './types';
+import type { State, UpgradeDef } from './types';
 
 const intern = PRODUCER_BY_ID['intern'];
 
@@ -324,6 +324,57 @@ describe('achievements', () => {
     buyProducer(s, 'junior', 3);
     buyProducer(s, 'senior', 3);
     expect(checkAchievements(s, derive(s))).toContain('startup');
+  });
+});
+
+describe('upgrade names', () => {
+  /** The prefixes that build the ids, and used to build the names too. */
+  const TIER_PREFIXES = ['Better', 'Elite', 'Principal', 'Distinguished', 'Transcendent'];
+
+  type Doubler = UpgradeDef & { effect: { type: 'producer'; producerId: string; mult: number } };
+  const doublers = UPGRADES.filter((u): u is Doubler => u.effect.type === 'producer');
+
+  it('gives every producer doubler a name of its own', () => {
+    // guards against a new producer or tier quietly shipping "Transcendent Whatever"
+    const generic = doublers.filter((u) => TIER_PREFIXES.some((p) => u.name.startsWith(`${p} `)));
+    expect(generic.map((u) => u.name)).toEqual([]);
+  });
+
+  it('has no two upgrades sharing a name', () => {
+    // "Mentorship program" is a synergy upgrade, so no doubler may claim it
+    const names = UPGRADES.map((u) => u.name);
+    const dupes = [...new Set(names.filter((n, i) => names.indexOf(n) !== i))];
+    expect(dupes).toEqual([]);
+  });
+
+  it('runs five distinctly named tiers for every producer that has a chain', () => {
+    for (const p of PRODUCERS.filter((p) => p.kind !== 'joke')) {
+      const chain = doublers.filter((u) => u.effect.producerId === p.id);
+      expect(chain, p.id).toHaveLength(5);
+      expect(new Set(chain.map((u) => u.name)).size, p.id).toBe(5);
+    }
+  });
+
+  it('keeps the ids that existing saves already hold', () => {
+    // sanitize() drops ids it does not know, so a rename deletes the upgrade
+    // from every save that had bought it
+    for (const id of [
+      'better_intern',
+      'elite_junior',
+      'principal_senior',
+      'distinguished_cicd',
+      'transcendent_platform',
+    ]) {
+      expect(UPGRADE_BY_ID[id], id).toBeDefined();
+    }
+  });
+
+  it('still states the effect, which the tooltip shows nowhere else', () => {
+    for (const u of doublers) expect(u.flavor, u.name).toMatch(/output ×2\.$/);
+  });
+
+  it('leaves the joke producer out of the doubling chains', () => {
+    expect(doublers.some((u) => u.effect.producerId === 'meeting')).toBe(false);
   });
 });
 
