@@ -9,8 +9,7 @@ const MIN_INTERVAL = 40_000;
 const MAX_INTERVAL = 80_000;
 /** Clearance from the stage edges, with room for the bob animation. */
 const PICKUP_MARGIN = 12;
-const PICKUP_SHRINK_PER_CLICK = 0.03;
-/** Floor on the shrink, so a hammered pickup stays an easy target. */
+/** Floor on the shrink, so a pickup stays an easy target to the last click. */
 export const PICKUP_MIN_SCALE = 0.7;
 
 interface Box {
@@ -18,9 +17,15 @@ interface Box {
   height: number;
 }
 
-/** Pickups that never resolve on their own shrink a little on every click. */
-export function pickupScale(clicks: number): number {
-  return Math.max(PICKUP_MIN_SCALE, 1 - clicks * PICKUP_SHRINK_PER_CLICK);
+/**
+ * How far a shrinking pickup has closed up, tracking its counter: full size
+ * untouched, the floor on the click that resolves it. Tying it to progress is
+ * the point — shrinking towards nothing in particular reads as a stuck.
+ */
+export function pickupScale(clicks: number, required: number): number {
+  if (!Number.isFinite(required) || required <= 0) return 1;
+  const progress = Math.min(Math.max(clicks / required, 0), 1);
+  return 1 - (1 - PICKUP_MIN_SCALE) * progress;
 }
 
 /** Desired 0–1 spot in stage pixels, clamped so the whole pickup stays on stage. */
@@ -59,6 +64,8 @@ interface EventDef {
   linger: number;
   /** clicks needed to resolve (default 1) */
   clicksRequired?: number;
+  /** closes up as its counter fills — the Critical Hotfix's own tell */
+  shrinks?: boolean;
   /** fires when the pickup appears (AI Outage starts hurting immediately) */
   onSpawn?: (ctx: EventCtx) => void;
   /** fires on every click for rapid-click events */
@@ -180,17 +187,20 @@ export const EVENT_TYPES: EventDef[] = [
   },
   {
     id: 'hotfix', label: 'Critical Hotfix', icon: '🚨', cls: 'challenge', weight: 8, linger: 8_000,
-    clicksRequired: Infinity, // never auto-resolves; every click pays out until it expires
-    onClickEach: (ctx, clickCount) => {
-      const payout = productionPayout(derive(ctx.state, ctx.now), 30, 20);
+    // Fewer clicks than a Merge Conflict, in half the time, and it shrinks as it
+    // goes. Paying per click made mashing speed the reward and dwarfed every
+    // other event, so the whole payout lands on the fix.
+    clicksRequired: 8,
+    shrinks: true,
+    onResolve: (ctx) => {
+      const payout = productionPayout(derive(ctx.state, ctx.now), 240, 60);
       earn(ctx.state, payout);
-      sound.click();
-      if (clickCount === 10 && grantAchievement(ctx.state, 'hotfixhero')) {
-        ctx.cb.achievementEarned('hotfixhero');
-      }
+      if (grantAchievement(ctx.state, 'hotfixhero')) ctx.cb.achievementEarned('hotfixhero');
+      ctx.cb.toast('🚨', 'Hotfix deployed', `Crisis averted: +${ctx.cb.fmt(payout)} LoC`, 'toast-good');
+      sound.upgrade();
     },
     onExpire: (ctx) => {
-      ctx.cb.toast('🚨', 'Hotfix deployed', 'Crisis averted. Adrenaline levels returning to normal.', 'toast-good');
+      ctx.cb.toast('🚨', 'Hotfix went out without you', 'Someone else got paged. You owe them one.', '');
     },
   },
 ];
@@ -257,7 +267,7 @@ export class EventDirector {
       const counter = el.querySelector('.event-count');
       if (counter) counter.textContent = `${clicks}/${required}`;
       // `scale`, not `transform` — the bob animation owns that one.
-      if (required === Infinity) el.style.scale = String(pickupScale(clicks));
+      if (def.shrinks) el.style.scale = String(pickupScale(clicks, required));
       if (clicks >= required) {
         window.clearTimeout(expire);
         this.dismiss();

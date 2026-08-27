@@ -152,7 +152,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'shipit',      name: 'Ship it',                 icon: '🚢', desc: 'Catch a lucky event.',                 check: () => false },
   { id: 'firefighter', name: 'Firefighter',             icon: '🚒', desc: 'Fix a Production Bug in time.',        check: () => false },
   { id: 'rebase',      name: 'Rebase hell survivor',    icon: '🧶', desc: 'Resolve a Merge Conflict.',            check: () => false },
-  { id: 'hotfixhero',  name: 'Hotfix hero',             icon: '🦸', desc: 'Land 10 clicks on one Critical Hotfix.', check: () => false },
+  { id: 'hotfixhero',  name: 'Hotfix hero',             icon: '🦸', desc: 'Fix a Critical Hotfix in time.', check: () => false },
   { id: 'caffeine',    name: 'Hand-rolled code',        icon: '✍️', desc: 'Clear an AI Outage.',                  check: () => false },
 ];
 
