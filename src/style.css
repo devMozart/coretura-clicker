@@ -45,6 +45,9 @@
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   --panel: rgba(2, 22, 42, 0.6);
   --panel-border: rgba(242, 241, 237, 0.1);
+  /* How much of the mobile store sheet stays on screen when it is shut. 54px clears the
+     44px minimum touch target; the inset keeps the stub off the home indicator. */
+  --sheet-peek: calc(54px + env(safe-area-inset-bottom));
 }
 
 * {
@@ -1091,25 +1094,56 @@ a:focus-visible {
   }
 }
 
+/* --- Mobile store sheet: the desktop half -------------------------------------- */
+
+/*
+ * Above 820px there is no sheet. The handle and the scrim are out of the layout
+ * entirely, and .sheet-body is a pass-through carrying the gap and flex:1 that
+ * .store used to apply to these sections directly.
+ */
+
+.sheet-handle,
+.sheet-scrim {
+  display: none;
+}
+
+.sheet-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1;
+  min-height: 0;
+}
+
 /* --- Responsive -------------------------------------------------------------------------------------- */
 
 @media (max-width: 820px) {
+  /*
+   * The page itself does not scroll here. The store used to sit ~680px below the
+   * fold; now it is a sheet and the game screen owns the viewport. body goes flex
+   * rather than the layout taking calc(100vh - 64px), because the brand wraps at
+   * this width and the top bar is no longer 64px tall.
+   */
   body {
-    overflow: auto;
+    display: flex;
+    flex-direction: column;
   }
 
   .layout {
     grid-template-columns: 1fr;
-    height: auto;
+    flex: 1;
+    min-height: 0;
   }
 
+  /*
+   * Above the scrim: the sheet covers the game, not the app's own chrome, so the
+   * menu stays reachable with the sheet open. The sheet tops out below the bar, so
+   * sitting above it costs nothing visually.
+   */
   .topbar {
+    position: relative;
+    z-index: 31;
     height: auto;
-  }
-
-  /* height:auto here, so flex:1 no longer caps the list. */
-  .producer-list {
-    max-height: calc(4.5 * var(--row-pitch));
   }
 
   .stat {
@@ -1118,11 +1152,148 @@ a:focus-visible {
   }
 
   .stage {
-    min-height: 70vh;
+    gap: 20px;
+    padding-bottom: var(--sheet-peek);
   }
 
   .core-wrap {
-    width: min(56vw, 280px);
+    width: min(52vw, 240px);
+  }
+
+  /* --- The sheet --- */
+
+  /*
+   * 83dvh, not a rounder number: what is left above the sheet is the tap-to-close
+   * target, and it has to clear the top bar by at least a 44px touch target on the
+   * shortest phones (~640px tall, where the bar wraps to 63px).
+   */
+  .store {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 30;
+    height: 83dvh;
+    gap: 0;
+    padding: 0;
+    background: rgba(0, 16, 30, 0.96);
+    border-top: 1px solid var(--panel-border);
+    backdrop-filter: blur(18px);
+    box-shadow: 0 -16px 44px rgba(0, 0, 0, 0.55);
+    transform: translateY(calc(100% - var(--sheet-peek) + var(--sheet-drag, 0px)));
+    transition: transform 0.32s cubic-bezier(0.22, 0.9, 0.28, 1);
+  }
+
+  body.sheet-open .store {
+    transform: translateY(var(--sheet-drag, 0px));
+  }
+
+  /* A drag rewrites --sheet-drag on every pointermove, so it has to track 1:1. */
+  body.sheet-dragging .store {
+    transition: none;
+    will-change: transform;
+  }
+
+  .sheet-handle {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    height: 54px;
+    padding: 0 16px;
+    text-align: left;
+    touch-action: none; /* a drag surface, not a scroll surface */
+  }
+
+  .sheet-chevron {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+    opacity: 0.7;
+    transition: rotate 0.32s cubic-bezier(0.22, 0.9, 0.28, 1);
+  }
+
+  body.sheet-open .sheet-chevron {
+    rotate: 180deg;
+  }
+
+  .sheet-title {
+    flex: 1;
+    font-family: var(--font-display);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    opacity: 0.75;
+  }
+
+  .sheet-funding {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 17px;
+    color: var(--beige);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  /*
+   * Divides the sheet rather than scrolling it: Upgrades and Achievements keep their
+   * own height and Team & Infrastructure takes what is left, so you scroll inside the
+   * list you care about instead of moving the whole panel. overflow stays as a fallback
+   * for when the fixed sections alone outgrow the sheet.
+   *
+   * visibility takes the shut content out of the tab order and the a11y tree without
+   * any breakpoint check in the JS; the delay holds it visible for the whole slide
+   * down, and opening drops the delay.
+   */
+  .sheet-body {
+    flex: 1;
+    gap: 12px;
+    padding: 0 12px calc(12px + env(safe-area-inset-bottom));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    visibility: hidden;
+    transition: visibility 0s 0.32s;
+  }
+
+  body.sheet-open .sheet-body {
+    visibility: visible;
+    transition-delay: 0s;
+  }
+
+  /* The handle carries the value at this width. */
+  .funding-panel {
+    display: none;
+  }
+
+  .sheet-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 29;
+    background: rgba(0, 8, 16, 0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.32s ease;
+  }
+
+  body.sheet-open .sheet-scrim {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /*
+   * The list keeps the scroll and the flex:1 it has on desktop; the floor stops it
+   * being squeezed away to nothing once the other two sections grow.
+   */
+  .producer-list {
+    min-height: calc(2 * var(--row-pitch));
+  }
+
+  /* The stub owns the bottom edge now. */
+  .toasts {
+    left: 12px;
+    right: 12px;
+    bottom: calc(var(--sheet-peek) + 12px);
+    max-width: none;
   }
 }
 
@@ -1239,6 +1410,13 @@ a:focus-visible {
   .tile,
   .toast,
   .event-pickup {
+    transition: none;
+  }
+
+  .store,
+  .sheet-body,
+  .sheet-chevron,
+  .sheet-scrim {
     transition: none;
   }
 }

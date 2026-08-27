@@ -21,9 +21,6 @@ npm run check    # all of the above, as one gate
 **Game**
 - News ticker along the bottom. The copy is already written in DESIGN.md 3.9.
 
-**Technical**
-- Mobile layout: the store sits about 630px below the fold. Maybe a bottom sheet, or tabs.
-
 ### Future
 
 **Game**

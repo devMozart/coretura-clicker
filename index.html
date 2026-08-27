@@ -208,52 +208,81 @@
         <div id="floaters" class="floaters" aria-hidden="true"></div>
       </section>
 
-      <aside class="store">
-        <div class="funding-panel">
-          <div class="funding-info">
-            <span class="funding-label">Funding</span>
-            <span class="funding-sub">shipped code becomes funding</span>
+      <aside class="store" id="store">
+        <!-- Mobile only: under 820px the store is a bottom sheet and this is the stub you
+             tap or drag. The funding value is repeated here because .funding-panel is
+             hidden at that width. -->
+        <button
+          id="sheet-handle"
+          class="sheet-handle"
+          aria-expanded="false"
+          aria-controls="sheet-body"
+        >
+          <svg class="sheet-chevron" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M6 14.5 12 8.5l6 6"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          <span class="sheet-title">Store</span>
+          <span id="sheet-funding" class="sheet-funding">€0</span>
+        </button>
+
+        <div id="sheet-body" class="sheet-body">
+          <div class="funding-panel">
+            <div class="funding-info">
+              <span class="funding-label">Funding</span>
+              <span class="funding-sub">shipped code becomes funding</span>
+            </div>
+            <span id="funding" class="funding-value">€0</span>
           </div>
-          <span id="funding" class="funding-value">€0</span>
+
+          <section class="store-section">
+            <div class="store-head">
+              <h2>Upgrades</h2>
+              <div class="seg-toggle" id="upgrade-tabs" role="tablist" aria-label="Upgrade views">
+                <button role="tab" data-tab="store" class="active" aria-selected="true" aria-controls="upgrades">
+                  Store
+                </button>
+                <button role="tab" data-tab="active" aria-selected="false" aria-controls="owned">
+                  Active <span id="owned-count">0</span>
+                </button>
+              </div>
+            </div>
+            <div id="upgrades" class="tile-grid store-tray empty" role="tabpanel" aria-label="Upgrade store"></div>
+            <div id="owned" class="tile-grid owned-tray empty hidden" role="tabpanel" aria-label="Active upgrades"></div>
+          </section>
+
+          <section class="store-section store-section-grow">
+            <div class="store-head">
+              <h2>Team &amp; Infrastructure</h2>
+              <div class="seg-toggle" id="buy-toggle">
+                <button data-amount="1" class="active">×1</button>
+                <button data-amount="10">×10</button>
+                <button data-amount="100">×100</button>
+              </div>
+            </div>
+            <div id="producers" class="producer-list"></div>
+          </section>
+
+          <section class="store-section">
+            <div class="store-head">
+              <h2>Achievements</h2>
+              <span class="head-count"><span id="ach-count">0</span>/<span id="ach-total">0</span></span>
+            </div>
+            <div id="achievements" class="tile-grid" aria-label="Achievements"></div>
+          </section>
         </div>
-
-        <section class="store-section">
-          <div class="store-head">
-            <h2>Upgrades</h2>
-            <div class="seg-toggle" id="upgrade-tabs" role="tablist" aria-label="Upgrade views">
-              <button role="tab" data-tab="store" class="active" aria-selected="true" aria-controls="upgrades">
-                Store
-              </button>
-              <button role="tab" data-tab="active" aria-selected="false" aria-controls="owned">
-                Active <span id="owned-count">0</span>
-              </button>
-            </div>
-          </div>
-          <div id="upgrades" class="tile-grid store-tray empty" role="tabpanel" aria-label="Upgrade store"></div>
-          <div id="owned" class="tile-grid owned-tray empty hidden" role="tabpanel" aria-label="Active upgrades"></div>
-        </section>
-
-        <section class="store-section store-section-grow">
-          <div class="store-head">
-            <h2>Team &amp; Infrastructure</h2>
-            <div class="seg-toggle" id="buy-toggle">
-              <button data-amount="1" class="active">×1</button>
-              <button data-amount="10">×10</button>
-              <button data-amount="100">×100</button>
-            </div>
-          </div>
-          <div id="producers" class="producer-list"></div>
-        </section>
-
-        <section class="store-section">
-          <div class="store-head">
-            <h2>Achievements</h2>
-            <span class="head-count"><span id="ach-count">0</span>/<span id="ach-total">0</span></span>
-          </div>
-          <div id="achievements" class="tile-grid" aria-label="Achievements"></div>
-        </section>
       </aside>
     </main>
+
+    <!-- Closes the mobile store sheet on a tap. A real element rather than a handler on
+         .stage, so the tap that dismisses cannot also land on the Core. -->
+    <div id="sheet-scrim" class="sheet-scrim" aria-hidden="true"></div>
 
     <div id="toasts" class="toasts" role="status" aria-live="polite"></div>
     <div id="tooltip" class="tooltip hidden" aria-hidden="true"></div>

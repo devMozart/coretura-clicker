@@ -14,4 +14,6 @@ const markup = body.replace(SCRIPTS, '');
 
 export function mountPage(): void {
   document.body.innerHTML = markup;
+  // The sheet's open state is a class on <body>, which innerHTML does not clear.
+  document.body.className = '';
 }

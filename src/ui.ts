@@ -19,6 +19,17 @@ function el<T extends HTMLElement>(id: string): T {
   return node as T;
 }
 
+/** Under this much travel, a drag on the sheet handle was really a tap. */
+const SHEET_TAP_SLOP = 8;
+/** A drag changes state once it covers this share of the sheet, or beats the flick speed. */
+const SHEET_TRAVEL_RATIO = 0.25;
+const SHEET_FLICK_SPEED = 0.5; // px/ms
+/**
+ * Stand-in for a sheet that has not been laid out. Measuring zero would turn any nudge
+ * past the slop into a dismissal, which is worse than guessing.
+ */
+const SHEET_ASSUMED_HEIGHT = 420;
+
 export class UI {
   private locEl = el('loc');
   private lpsEl = el('lps');
@@ -53,6 +64,10 @@ export class UI {
   private shareStatus = el('share-status');
   private shareCard: { blob: Blob; file: File } | null = null;
   private shareUrl: string | null = null;
+  private store = el('store');
+  private sheetHandle = el<HTMLButtonElement>('sheet-handle');
+  private sheetScrim = el('sheet-scrim');
+  private sheetFunding = el('sheet-funding');
 
   private buyAmount = 1;
   private producerRows = new Map<string, HTMLButtonElement>();
@@ -60,11 +75,14 @@ export class UI {
   private ownedKey = '';
   private achievementKey = '';
   private upgradeTab: 'store' | 'active' = 'store';
+  private sheetOpen = false;
+  private sheetDrag: { startY: number; startTime: number } | null = null;
 
   constructor(private state: State) {
     this.wireCore();
     this.wireBuyToggle();
     this.wireUpgradeTabs();
+    this.wireSheet();
     this.wireMenu();
     this.wireShare();
   }
@@ -137,6 +155,83 @@ export class UI {
     const store = this.upgradeTab === 'store';
     this.upgradeTray.classList.toggle('hidden', !store);
     this.ownedTray.classList.toggle('hidden', store);
+  }
+
+  // --- The mobile store sheet ---------------------------------------------------
+
+  /*
+   * Under 820px the store is a bottom sheet: a peek stub you tap or drag up. The open
+   * state is a class on <body>, because the scrim sits outside the store and both have
+   * to answer to one flag. None of this fires on desktop, where the handle is
+   * display:none and so is never pressed.
+   */
+  private wireSheet(): void {
+    this.sheetHandle.addEventListener('click', (e) => {
+      // Pointer taps are settled in pointerup below. A keyboard press does not go
+      // through pointer events at all, and its click carries detail 0.
+      if (e.detail === 0) this.toggleSheet(!this.sheetOpen);
+    });
+
+    this.sheetScrim.addEventListener('click', () => this.toggleSheet(false));
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.sheetOpen) {
+        this.toggleSheet(false);
+        this.sheetHandle.focus();
+      }
+    });
+
+    // The handle is a drag surface (touch-action: none), so a swipe on it never
+    // scrolls. Move and release are watched on window, not the handle, so a finger
+    // that slides off the stub still finishes its gesture.
+    this.sheetHandle.addEventListener('pointerdown', (e) => {
+      this.sheetDrag = { startY: e.clientY, startTime: Date.now() };
+      document.body.classList.add('sheet-dragging');
+    });
+
+    window.addEventListener('pointermove', (e) => {
+      if (!this.sheetDrag) return;
+      const dy = e.clientY - this.sheetDrag.startY;
+      // Clamped: an open sheet only travels down, a shut one only up.
+      const offset = this.sheetOpen ? Math.max(0, dy) : Math.min(0, dy);
+      this.store.style.setProperty('--sheet-drag', `${offset}px`);
+    });
+
+    window.addEventListener('pointerup', (e) => {
+      const drag = this.endSheetDrag();
+      if (!drag) return;
+
+      const dy = e.clientY - drag.startY;
+      const travel = Math.abs(dy);
+      if (travel < SHEET_TAP_SLOP) {
+        this.toggleSheet(!this.sheetOpen);
+        return;
+      }
+
+      const height = this.store.offsetHeight || SHEET_ASSUMED_HEIGHT;
+      const elapsed = Math.max(1, Date.now() - drag.startTime);
+      const decisive = travel > height * SHEET_TRAVEL_RATIO || travel / elapsed > SHEET_FLICK_SPEED;
+      // A decisive drag goes the way it was pulled; anything less snaps back.
+      this.toggleSheet(decisive ? dy < 0 : this.sheetOpen);
+    });
+
+    window.addEventListener('pointercancel', () => this.endSheetDrag());
+  }
+
+  private toggleSheet(open: boolean): void {
+    this.sheetOpen = open;
+    document.body.classList.toggle('sheet-open', open);
+    this.sheetHandle.setAttribute('aria-expanded', String(open));
+  }
+
+  /** Ends any drag in progress and hands back what it was, or null if there was none. */
+  private endSheetDrag(): { startY: number; startTime: number } | null {
+    const drag = this.sheetDrag;
+    if (!drag) return null;
+    this.sheetDrag = null;
+    document.body.classList.remove('sheet-dragging');
+    this.store.style.removeProperty('--sheet-drag');
+    return drag;
   }
 
   onRestart: () => void = () => {};
@@ -339,7 +434,9 @@ export class UI {
     const d = derive(s, now);
     this.locEl.textContent = fmt(s.loc);
     this.lpsEl.textContent = `${fmtRate(d.locPerSec)} LoC/s`;
-    this.fundingEl.textContent = `€${fmt(s.funding)}`;
+    const funding = `€${fmt(s.funding)}`;
+    this.fundingEl.textContent = funding;
+    this.sheetFunding.textContent = funding;
     this.qualityEl.textContent = `+${s.achievements.size}%`;
     // Leave the descriptive title alone until there's a score, so crawlers index that one.
     if (s.loc > 0) document.title = `${fmt(s.loc)} LoC — Coretura Clicker`;

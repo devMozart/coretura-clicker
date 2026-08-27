@@ -720,3 +720,147 @@ describe('save and load from a file', () => {
     revoked.mockRestore();
   });
 });
+
+describe('mobile store sheet', () => {
+  it('mirrors funding into the handle, so it reads while the sheet is shut', () => {
+    const { ui } = setup({ funding: 1234 });
+    ui.updateHud(Date.now());
+    expect(el('funding').textContent).toBe('€1.23K');
+    expect(el('sheet-funding').textContent).toBe('€1.23K');
+  });
+
+  it('starts collapsed', () => {
+    setup();
+    expect(document.body.classList.contains('sheet-open')).toBe(false);
+    expect(el('sheet-handle').getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('opens and closes on the handle', () => {
+    setup();
+    click(el('sheet-handle'));
+    expect(document.body.classList.contains('sheet-open')).toBe(true);
+    expect(el('sheet-handle').getAttribute('aria-expanded')).toBe('true');
+
+    click(el('sheet-handle'));
+    expect(document.body.classList.contains('sheet-open')).toBe(false);
+    expect(el('sheet-handle').getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('closes on the scrim', () => {
+    setup();
+    click(el('sheet-handle'));
+    click(el('sheet-scrim'));
+    expect(document.body.classList.contains('sheet-open')).toBe(false);
+  });
+
+  it('closes on Escape and hands focus back to the handle', () => {
+    setup();
+    click(el('sheet-handle'));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    expect(document.body.classList.contains('sheet-open')).toBe(false);
+    expect(document.activeElement).toBe(el('sheet-handle'));
+  });
+
+  // The menu's Escape handler is guarded the same way, so that a dismissal with
+  // nothing open does not pull focus off the Core.
+  it('leaves focus alone when Escape arrives with the sheet already shut', () => {
+    setup();
+    el<HTMLButtonElement>('core').focus();
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    expect(document.activeElement).toBe(el('core'));
+  });
+
+  describe('dragging the handle', () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    /** A pointer event carrying a vertical position, bubbling up to window. */
+    const drag = (type: string, clientY: number) =>
+      el('sheet-handle').dispatchEvent(new PointerEvent(type, { clientY, bubbles: true }));
+
+    const isOpen = () => document.body.classList.contains('sheet-open');
+
+    it('closes on a long drag down', () => {
+      setup();
+      click(el('sheet-handle'));
+      drag('pointerdown', 300);
+      vi.advanceTimersByTime(600); // slow, so travel is what decides it
+      drag('pointermove', 500);
+      drag('pointerup', 500);
+      expect(isOpen()).toBe(false);
+    });
+
+    it('opens on a long drag up', () => {
+      setup();
+      drag('pointerdown', 500);
+      vi.advanceTimersByTime(600);
+      drag('pointermove', 300);
+      drag('pointerup', 300);
+      expect(isOpen()).toBe(true);
+    });
+
+    it('closes on a short fast flick down', () => {
+      setup();
+      click(el('sheet-handle'));
+      drag('pointerdown', 300);
+      vi.advanceTimersByTime(40); // 30px in 40ms beats the flick speed
+      drag('pointerup', 330);
+      expect(isOpen()).toBe(false);
+    });
+
+    it('snaps back when a drag is neither long nor fast', () => {
+      setup();
+      click(el('sheet-handle'));
+      drag('pointerdown', 300);
+      vi.advanceTimersByTime(600);
+      drag('pointerup', 330);
+      expect(isOpen()).toBe(true);
+    });
+
+    it('treats a drag under the slop as a tap', () => {
+      setup();
+      drag('pointerdown', 300);
+      drag('pointerup', 304);
+      expect(isOpen()).toBe(true);
+    });
+
+    it('follows the pointer while dragging, and lets go on release', () => {
+      setup();
+      click(el('sheet-handle'));
+      drag('pointerdown', 300);
+      drag('pointermove', 360);
+      expect(document.body.classList.contains('sheet-dragging')).toBe(true);
+      expect(el('store').style.getPropertyValue('--sheet-drag')).toBe('60px');
+
+      drag('pointerup', 360);
+      expect(document.body.classList.contains('sheet-dragging')).toBe(false);
+      expect(el('store').style.getPropertyValue('--sheet-drag')).toBe('');
+    });
+
+    // The clamp is what stops the sheet being hauled past either resting position.
+    it('will not haul an open sheet above its open position', () => {
+      setup();
+      click(el('sheet-handle'));
+      drag('pointerdown', 300);
+      drag('pointermove', 240); // upward, and it is already as far up as it goes
+      expect(el('store').style.getPropertyValue('--sheet-drag')).toBe('0px');
+    });
+
+    it('will not haul a shut sheet below its peek', () => {
+      setup();
+      drag('pointerdown', 300);
+      drag('pointermove', 360); // downward, and it is already as far down as it goes
+      expect(el('store').style.getPropertyValue('--sheet-drag')).toBe('0px');
+    });
+
+    it('abandons a cancelled drag without changing state', () => {
+      setup();
+      click(el('sheet-handle'));
+      drag('pointerdown', 300);
+      drag('pointermove', 500);
+      drag('pointercancel', 500);
+      expect(isOpen()).toBe(true);
+      expect(el('store').style.getPropertyValue('--sheet-drag')).toBe('');
+    });
+  });
+});
