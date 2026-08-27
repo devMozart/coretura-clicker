@@ -153,19 +153,6 @@ a:focus-visible {
 
 .brand {
   display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.brand-mark {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  box-shadow: 0 0 14px rgba(6, 175, 227, 0.45);
-}
-
-.brand-text {
-  display: flex;
   flex-direction: column;
   gap: 3px;
 }
